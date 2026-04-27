@@ -96,6 +96,31 @@ app.get("/api/devices", (req, res) => {
   });
 });
 
+app.post("/api/devices/telemetry", (req, res) => {
+  const { device_id, temperature, battery, wifi_signal } = req.body;
+
+  if (!device_id) {
+    return res.status(400).json({ error: "device_id is required" });
+  }
+
+  const query = `
+    INSERT INTO telemetry (device_id, temperature, battery, wifi_signal)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.query(
+    query,
+    [device_id, temperature, battery, wifi_signal],
+    (err) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      res.json({ message: "Telemetry saved successfully" });
+    }
+  );
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
