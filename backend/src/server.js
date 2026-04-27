@@ -121,6 +121,32 @@ app.post("/api/devices/telemetry", (req, res) => {
   );
 });
 
+app.get("/api/devices/:deviceId/telemetry", (req, res) => {
+  const { deviceId } = req.params;
+
+  const query = `
+    SELECT 
+      id,
+      device_id,
+      temperature,
+      battery,
+      wifi_signal,
+      created_at
+    FROM telemetry
+    WHERE device_id = ?
+    ORDER BY created_at DESC
+    LIMIT 20
+  `;
+
+  db.query(query, [deviceId], (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+
+    res.json(results);
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
