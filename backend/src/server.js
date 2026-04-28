@@ -147,7 +147,25 @@ app.get("/api/devices/:deviceId/telemetry", (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+app.get("/api/devices/telemetry", (req, res) => {
+  const sql = `
+    SELECT *
+    FROM telemetry
+    ORDER BY created_at DESC
+    LIMIT 50
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Telemetry fetch error:", err);
+      return res.status(500).json({ message: "Database error" });
+    }
+
+    res.json(results);
+  });
+});
+
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
 
