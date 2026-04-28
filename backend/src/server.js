@@ -44,28 +44,34 @@ app.post("/api/devices/register", (req, res) => {
 });
 
 app.post("/api/devices/heartbeat", (req, res) => {
-  const { device_id } = req.body;
+  const { device_id, firmware_version } = req.body;
 
   if (!device_id) {
-    return res.status(400).json({ error: "device_id is required" });
+    return res.status(400).json({
+      message: "device_id is required",
+    });
   }
 
-  const query = `
-    UPDATE devices
-    SET status = 'ONLINE', last_seen = NOW()
-    WHERE device_id = ?
+  const sql = `
+    INSERT INTO devices (device_id, status, firmware_version)
+    VALUES (?, 'online', ?)
+    ON DUPLICATE KEY UPDATE
+      status = 'online',
+      firmware_version = VALUES(firmware_version),
+      last_seen = CURRENT_TIMESTAMP
   `;
 
-  db.query(query, [device_id], (err, result) => {
+  db.query(sql, [device_id, firmware_version || "1.0.0"], (err) => {
     if (err) {
-      return res.status(500).json({ error: err.message });
+      console.error("Heartbeat error:", err);
+      return res.status(500).json({
+        message: "Database error",
+      });
     }
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Device not found" });
-    }
-
-    res.json({ message: "Heartbeat received. Device is ONLINE" });
+    res.json({
+      message: "Heartbeat updated successfully",
+    });
   });
 });
 

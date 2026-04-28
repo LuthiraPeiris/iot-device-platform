@@ -44,7 +44,12 @@ void sendHeartbeat() {
     http.begin(url);
     http.addHeader("Content-Type", "application/json");
 
-    String body = "{\"device_id\":\"" + DEVICE_ID + "\"}";
+    const String FIRMWARE_VERSION = "1.0.0";
+
+    String body = "{";
+    body += "\"device_id\":\"" + DEVICE_ID + "\",";
+    body += "\"firmware_version\":\"" + FIRMWARE_VERSION + "\"";
+    body += "}";
 
     int httpResponseCode = http.POST(body);
 
