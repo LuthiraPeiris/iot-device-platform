@@ -165,6 +165,84 @@ app.get("/api/devices/telemetry", (req, res) => {
   });
 });
 
+app.post("/api/devices/command", (req, res) => {
+  const { device_id, command } = req.body;
+
+  if (!device_id || !command) {
+    return res.status(400).json({
+      message: "device_id and command are required",
+    });
+  }
+
+  const sql = `
+    INSERT INTO device_commands (device_id, command)
+    VALUES (?, ?)
+  `;
+
+  db.query(sql, [device_id, command], (err, result) => {
+    if (err) {
+      console.error("Command insert error:", err);
+      return res.status(500).json({ message: "Database error" });
+    }
+
+    res.json({
+      message: "Command created successfully",
+      command_id: result.insertId,
+    });
+  });
+});
+
+app.get("/api/devices/command/:device_id", (req, res) => {
+  const { device_id } = req.params;
+
+  const sql = `
+    SELECT *
+    FROM device_commands
+    WHERE device_id = ? AND status = 'pending'
+    ORDER BY created_at DESC
+    LIMIT 1
+  `;
+
+  db.query(sql, [device_id], (err, results) => {
+    if (err) {
+      console.error("Command fetch error:", err);
+      return res.status(500).json({ message: "Database error" });
+    }
+
+    if (results.length === 0) {
+      return res.json({ command: null });
+    }
+
+    res.json(results[0]);
+  });
+});
+
+app.post("/api/devices/command/ack", (req, res) => {
+  const { command_id } = req.body;
+
+  if (!command_id) {
+    return res.status(400).json({
+      message: "command_id is required",
+    });
+  }
+
+  const sql = `
+    UPDATE device_commands
+    SET status = 'executed',
+        executed_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `;
+
+  db.query(sql, [command_id], (err) => {
+    if (err) {
+      console.error("Command ACK error:", err);
+      return res.status(500).json({ message: "Database error" });
+    }
+
+    res.json({ message: "Command acknowledged" });
+  });
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
