@@ -5,6 +5,8 @@
 const char* ssid = "Kavi";
 const char* password = "A26YT15842R";
 
+const String FIRMWARE_VERSION = "1.0.0";
+
 const String BASE_URL = "http://192.168.8.102:5000/api/devices";
 const String DEVICE_ID = "esp32-001";
 
@@ -15,6 +17,14 @@ unsigned long lastCommandCheckTime = 0;
 
 const unsigned long sendInterval = 10000;
 const unsigned long commandCheckInterval = 3000;
+
+String getLedStatus() {
+  if (digitalRead(LED_PIN) == HIGH) {
+    return "ON";
+  } else {
+    return "OFF";
+  }
+}
 
 void setup() {
   Serial.begin(115200);
@@ -34,6 +44,8 @@ void setup() {
   Serial.println("WiFi connected");
   Serial.print("ESP32 IP: ");
   Serial.println(WiFi.localIP());
+  Serial.print("Firmware Version: ");
+  Serial.println(FIRMWARE_VERSION);
 }
 
 void sendHeartbeat() {
@@ -43,8 +55,6 @@ void sendHeartbeat() {
     String url = BASE_URL + "/heartbeat";
     http.begin(url);
     http.addHeader("Content-Type", "application/json");
-
-    const String FIRMWARE_VERSION = "1.0.0";
 
     String body = "{";
     body += "\"device_id\":\"" + DEVICE_ID + "\",";
@@ -72,12 +82,15 @@ void sendTelemetry() {
     float temperature = random(250, 330) / 10.0;
     int battery = random(60, 100);
     int wifiSignal = WiFi.RSSI();
+    String ledStatus = getLedStatus();
 
     String body = "{";
     body += "\"device_id\":\"" + DEVICE_ID + "\",";
     body += "\"temperature\":" + String(temperature) + ",";
     body += "\"battery\":" + String(battery) + ",";
-    body += "\"wifi_signal\":" + String(wifiSignal);
+    body += "\"wifi_signal\":" + String(wifiSignal) + ",";
+    body += "\"led_status\":\"" + ledStatus + "\",";
+    body += "\"firmware_version\":\"" + FIRMWARE_VERSION + "\"";
     body += "}";
 
     int httpResponseCode = http.POST(body);

@@ -58,6 +58,7 @@ function App() {
               <tr>
                 <th className="p-3">Device ID</th>
                 <th className="p-3">Status</th>
+                <th className="p-3">Firmware</th>
                 <th className="p-3">Last Seen</th>
                 <th className="p-3">Actions</th>
               </tr>
@@ -67,6 +68,7 @@ function App() {
                 <tr key={device.device_id} className="border-t border-slate-800">
                   <td className="p-3">{device.device_id}</td>
                   <td className="p-3">{device.status}</td>
+                  <td className="p-3">{device.firmwareVersion || "Unknown"}</td>
                   <td className="p-3">
                     {device.last_seen
                       ? new Date(device.last_seen).toLocaleString()
