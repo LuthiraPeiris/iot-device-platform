@@ -84,6 +84,9 @@ app.get("/api/devices", (req, res) => {
       device_name,
       device_type,
       firmware_version,
+      ota_status,
+      latest_firmware_version,
+      last_ota_check,
       CASE
         WHEN last_seen >= NOW() - INTERVAL 30 SECOND THEN 'ONLINE'
         ELSE 'OFFLINE'
@@ -256,22 +259,46 @@ app.get("/api/firmware/check/:deviceId", (req, res) => {
 
   const latestVersion = "1.0.1";
 
-  if (currentVersion !== latestVersion) {
-    return res.json({
-      updateAvailable: true,
-      deviceId,
-      currentVersion,
-      latestVersion,
-      firmwareUrl: "http://192.168.8.102:5000/firmware/esp32-001-v1.0.1.bin"
-    });
-  }
+  const otaStatus =
+    currentVersion !== latestVersion ? "UPDATE_AVAILABLE" : "UP_TO_DATE";
 
-  res.json({
-    updateAvailable: false,
-    deviceId,
-    currentVersion,
-    latestVersion
-  });
+  const updateQuery = `
+    UPDATE devices
+    SET 
+      firmware_version = ?,
+      latest_firmware_version = ?,
+      ota_status = ?,
+      last_ota_check = NOW()
+    WHERE device_id = ?
+  `;
+
+  db.query(
+    updateQuery,
+    [currentVersion, latestVersion, otaStatus, deviceId],
+    (err) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (currentVersion !== latestVersion) {
+        return res.json({
+          updateAvailable: true,
+          deviceId,
+          currentVersion,
+          latestVersion,
+          firmwareUrl:
+            "http://192.168.8.102:5000/firmware/esp32-001-v1.0.1.bin",
+        });
+      }
+
+      res.json({
+        updateAvailable: false,
+        deviceId,
+        currentVersion,
+        latestVersion,
+      });
+    }
+  );
 });
 
 app.listen(PORT, "0.0.0.0", () => {
