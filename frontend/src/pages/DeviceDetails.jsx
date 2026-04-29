@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-const API_BASE = "http://192.168.8.102:5000";
+const API_BASE = "http://192.168.8.106:5000";
 
 export default function DeviceDetails() {
   const { deviceId } = useParams();
+
   const [device, setDevice] = useState(null);
   const [telemetry, setTelemetry] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,42 +13,63 @@ export default function DeviceDetails() {
   async function fetchDeviceDetails() {
     try {
       const deviceRes = await fetch(`${API_BASE}/api/devices/${deviceId}`);
+
+      if (!deviceRes.ok) {
+        throw new Error("Failed to fetch device");
+      }
+
       const deviceData = await deviceRes.json();
 
       const telemetryRes = await fetch(
         `${API_BASE}/api/devices/${deviceId}/telemetry`
       );
+
+      if (!telemetryRes.ok) {
+        throw new Error("Failed to fetch telemetry");
+      }
+
       const telemetryData = await telemetryRes.json();
 
       setDevice(deviceData);
       setTelemetry(telemetryData);
     } catch (err) {
       console.error("Failed to fetch device details:", err);
+      setDevice(null);
+      setTelemetry([]);
     } finally {
       setLoading(false);
     }
   }
 
   async function checkFirmwareUpdate() {
-  try {
-    const res = await fetch(
-      `${API_BASE}/api/firmware/check/${deviceId}?version=${device.firmware_version}`
-    );
+    try {
+      if (!device || !device.firmware_version) {
+        alert("Firmware version not found");
+        return;
+      }
 
-    const data = await res.json();
+      const res = await fetch(
+        `${API_BASE}/api/firmware/check/${deviceId}?version=${device.firmware_version}`
+      );
 
-    if (data.updateAvailable) {
-      alert(`Update available: ${data.latestVersion}`);
-    } else {
-      alert("Device firmware is already up to date");
+      if (!res.ok) {
+        throw new Error("Firmware check request failed");
+      }
+
+      const data = await res.json();
+
+      if (data.updateAvailable) {
+        alert(`Update available: ${data.latestVersion}`);
+      } else {
+        alert("Device firmware is already up to date");
+      }
+
+      fetchDeviceDetails();
+    } catch (err) {
+      console.error("Firmware check failed:", err);
+      alert("Failed to check firmware update");
     }
-
-    fetchDeviceDetails();
-  } catch (err) {
-    console.error("Firmware check failed:", err);
-    alert("Failed to check firmware update");
   }
-}
 
   useEffect(() => {
     fetchDeviceDetails();
@@ -94,9 +116,6 @@ export default function DeviceDetails() {
           <p>Current Firmware: {device.firmware_version || "-"}</p>
           <p>Latest Firmware: {device.latest_firmware_version || "-"}</p>
           <p>OTA Status: {device.ota_status || "-"}</p>
-          <button onClick={checkFirmwareUpdate} className="mt-4 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700">
-            Check Firmware Update
-          </button>
 
           <p>
             Last OTA Check:{" "}
@@ -111,6 +130,13 @@ export default function DeviceDetails() {
               ? new Date(device.last_seen).toLocaleString()
               : "-"}
           </p>
+
+          <button
+            onClick={checkFirmwareUpdate}
+            className="mt-4 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700"
+          >
+            Check Firmware Update
+          </button>
         </div>
 
         <div className="bg-slate-900 p-5 rounded-xl border border-slate-800">
@@ -129,7 +155,9 @@ export default function DeviceDetails() {
               </p>
             </>
           ) : (
-            <p className="text-slate-400">No telemetry found for this device.</p>
+            <p className="text-slate-400">
+              No telemetry found for this device.
+            </p>
           )}
         </div>
       </div>
