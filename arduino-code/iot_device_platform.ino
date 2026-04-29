@@ -6,10 +6,11 @@
 const char* ssid = "Kavi";
 const char* password = "A26YT15842R";
 
-const String FIRMWARE_VERSION = "1.0.0";
-
-const String BASE_URL = "http://192.168.8.106:5000/api/devices";
 const String DEVICE_ID = "esp32-001";
+const String FIRMWARE_VERSION = "1.0.1";
+
+const String SERVER_BASE_URL = "http://192.168.8.106:5000";
+const String BASE_URL = SERVER_BASE_URL + "/api/devices";
 
 #define LED_PIN 2
 
@@ -26,6 +27,12 @@ String getLedStatus() {
     return "OFF";
   }
 }
+
+void acknowledgeCommand(int commandId);
+void checkCommand();
+void sendHeartbeat();
+void sendTelemetry();
+void checkForFirmwareUpdate();
 
 void setup() {
   Serial.begin(115200);
@@ -45,11 +52,12 @@ void setup() {
   Serial.println("WiFi connected");
   Serial.print("ESP32 IP: ");
   Serial.println(WiFi.localIP());
+
   Serial.print("Firmware Version: ");
   Serial.println(FIRMWARE_VERSION);
-  checkForFirmwareUpdate();
 
-  Serial.println("Running OLD firmware version 1.0.0");
+  sendHeartbeat();
+  checkForFirmwareUpdate();
 }
 
 void sendHeartbeat() {
@@ -158,8 +166,7 @@ void checkCommand() {
             digitalWrite(LED_PIN, HIGH);
             Serial.println("LED turned ON");
             acknowledgeCommand(commandId);
-          } 
-          else if (command == "LED_OFF") {
+          } else if (command == "LED_OFF") {
             digitalWrite(LED_PIN, LOW);
             Serial.println("LED turned OFF");
             acknowledgeCommand(commandId);
@@ -177,69 +184,91 @@ void checkCommand() {
 }
 
 void checkForFirmwareUpdate() {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi not connected. Skipping OTA check.");
+    return;
+  }
 
-    String url = "http://192.168.8.102:5000/api/firmware/check/" + DEVICE_ID + "?version=" + FIRMWARE_VERSION;
+  HTTPClient http;
 
-    Serial.println("Checking firmware update...");
-    Serial.println(url);
+  String url =
+    SERVER_BASE_URL +
+    "/api/firmware/check/" +
+    DEVICE_ID +
+    "?version=" +
+    FIRMWARE_VERSION;
 
-    http.begin(url);
+  Serial.println("Checking firmware update...");
+  Serial.println(url);
 
-    int httpResponseCode = http.GET();
+  http.begin(url);
 
-    if (httpResponseCode == 200) {
-      String response = http.getString();
-      Serial.println(response);
+  int httpResponseCode = http.GET();
 
-      StaticJsonDocument<512> doc;
-      DeserializationError error = deserializeJson(doc, response);
+  Serial.print("Firmware check response code: ");
+  Serial.println(httpResponseCode);
 
-      if (!error) {
-        bool updateAvailable = doc["updateAvailable"];
+  if (httpResponseCode == 200) {
+    String response = http.getString();
+    Serial.println(response);
 
-        if (updateAvailable) {
-          String firmwareUrl = doc["firmwareUrl"];
-          String latestVersion = doc["latestVersion"];
+    StaticJsonDocument<1024> doc;
+    DeserializationError error = deserializeJson(doc, response);
 
-          Serial.println("New firmware available!");
-          Serial.print("Latest version: ");
-          Serial.println(latestVersion);
-          Serial.print("Firmware URL: ");
-          Serial.println(firmwareUrl);
-
-          WiFiClient client;
-
-Serial.println("Starting OTA update...");
-
-t_httpUpdate_return ret = httpUpdate.update(client, firmwareUrl);
-
-switch (ret) {
-  case HTTP_UPDATE_FAILED:
-    Serial.printf("OTA failed. Error (%d): %s\n",
-                  httpUpdate.getLastError(),
-                  httpUpdate.getLastErrorString().c_str());
-    break;
-
-  case HTTP_UPDATE_NO_UPDATES:
-    Serial.println("No OTA update available.");
-    break;
-
-  case HTTP_UPDATE_OK:
-    Serial.println("OTA update successful. Rebooting...");
-    break;
-}
-
-        } else {
-          Serial.println("Firmware is already up to date.");
-        }
-      }
-    } else {
-      Serial.print("Firmware check failed: ");
-      Serial.println(httpResponseCode);
+    if (error) {
+      Serial.print("Firmware JSON parse failed: ");
+      Serial.println(error.c_str());
+      http.end();
+      return;
     }
 
+    bool updateAvailable = doc["updateAvailable"];
+
+    if (updateAvailable) {
+      String firmwareUrl = doc["firmwareUrl"];
+      String latestVersion = doc["latestVersion"];
+
+      Serial.println("New firmware available!");
+      Serial.print("Current version: ");
+      Serial.println(FIRMWARE_VERSION);
+      Serial.print("Latest version: ");
+      Serial.println(latestVersion);
+      Serial.print("Firmware URL: ");
+      Serial.println(firmwareUrl);
+
+      http.end();
+
+      WiFiClient client;
+
+      Serial.println("Starting OTA update...");
+
+      t_httpUpdate_return ret = httpUpdate.update(client, firmwareUrl);
+
+      switch (ret) {
+        case HTTP_UPDATE_FAILED:
+          Serial.printf(
+            "OTA failed. Error (%d): %s\n",
+            httpUpdate.getLastError(),
+            httpUpdate.getLastErrorString().c_str()
+          );
+          break;
+
+        case HTTP_UPDATE_NO_UPDATES:
+          Serial.println("No OTA update available.");
+          break;
+
+        case HTTP_UPDATE_OK:
+          Serial.println("OTA update successful. Rebooting...");
+          break;
+      }
+    } else {
+      Serial.println("Firmware is already up to date.");
+      http.end();
+    }
+  } else {
+    Serial.print("Firmware check failed: ");
+    Serial.println(httpResponseCode);
+    Serial.println(http.getString());
     http.end();
   }
 }

@@ -325,7 +325,7 @@ app.get("/api/firmware/check/:deviceId", (req, res) => {
   const { deviceId } = req.params;
   const currentVersion = req.query.version;
 
-  const latestVersion = "1.0.1";
+  const latestVersion = "1.0.2";
 
   const otaStatus =
     currentVersion !== latestVersion ? "UPDATE_AVAILABLE" : "UP_TO_DATE";
@@ -356,7 +356,7 @@ app.get("/api/firmware/check/:deviceId", (req, res) => {
           currentVersion,
           latestVersion,
           firmwareUrl:
-            "http://192.168.8.102:5000/firmware/esp32-001-v1.0.1.bin",
+            "http://192.168.8.106:5000/firmware/esp32-001-v1.0.2.bin",
         });
       }
 
