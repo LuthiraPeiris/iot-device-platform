@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import DeviceDetails from "./pages/DeviceDetails";
 import axios from "axios";
 
 const API_BASE_URL = "http://192.168.8.102:5000/api/devices";
 
-function App() {
+function Dashboard() {
   const [devices, setDevices] = useState([]);
   const [telemetry, setTelemetry] = useState([]);
 
@@ -20,18 +22,18 @@ function App() {
   };
 
   const sendCommand = async (deviceId, command) => {
-  try {
-    await axios.post(`${API_BASE_URL}/command`, {
-      device_id: deviceId,
-      command: command,
-    });
+    try {
+      await axios.post(`${API_BASE_URL}/command`, {
+        device_id: deviceId,
+        command: command,
+      });
 
-    alert(`${command} command sent to ${deviceId}`);
-  } catch (error) {
-    console.error("Error sending command:", error);
-    alert("Failed to send command");
-  }
-};
+      alert(`${command} command sent to ${deviceId}`);
+    } catch (error) {
+      console.error("Error sending command:", error);
+      alert("Failed to send command");
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -45,98 +47,116 @@ function App() {
       <h1 className="text-3xl font-bold mb-2">
         IoT Device Management Dashboard
       </h1>
+
       <p className="text-slate-400 mb-6">
-        ESP32 device registry, heartbeat, and telemetry monitoring
+        ESP32 device registry, heartbeat, telemetry monitoring, and OTA status
       </p>
 
       <section className="mb-8">
-  <h2 className="text-xl font-semibold mb-3">Registered Devices</h2>
+        <h2 className="text-xl font-semibold mb-3">Registered Devices</h2>
 
-  <div className="overflow-x-auto rounded-xl border border-slate-800">
-    <table className="w-full text-left">
-      <thead className="bg-slate-900">
-        <tr>
-          <th className="p-3">Device ID</th>
-          <th className="p-3">Status</th>
-          <th className="p-3">Current Firmware</th>
-          <th className="p-3">OTA Status</th>
-          <th className="p-3">Latest Firmware</th>
-          <th className="p-3">Last OTA Check</th>
-          <th className="p-3">Last Seen</th>
-          <th className="p-3">Actions</th>
-        </tr>
-      </thead>
+        <div className="overflow-x-auto rounded-xl border border-slate-800">
+          <table className="w-full text-left">
+            <thead className="bg-slate-900">
+              <tr>
+                <th className="p-3">Device ID</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Current Firmware</th>
+                <th className="p-3">OTA Status</th>
+                <th className="p-3">Latest Firmware</th>
+                <th className="p-3">Last OTA Check</th>
+                <th className="p-3">Last Seen</th>
+                <th className="p-3">Actions</th>
+              </tr>
+            </thead>
 
-      <tbody>
-        {devices.map((device) => (
-          <tr key={device.device_id} className="border-t border-slate-800">
-            <td className="p-3 font-medium">{device.device_id}</td>
+            <tbody>
+              {devices.map((device) => (
+                <tr key={device.device_id} className="border-t border-slate-800">
+                  <td className="p-3 font-medium">{device.device_id}</td>
 
-            <td className="p-3">
-              <span
-                className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                  device.status === "ONLINE"
-                    ? "bg-green-600"
-                    : "bg-slate-700"
-                }`}
-              >
-                {device.status || "OFFLINE"}
-              </span>
-            </td>
+                  <td className="p-3">
+                    <span
+                      className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                        device.status === "ONLINE"
+                          ? "bg-green-600"
+                          : "bg-slate-700"
+                      }`}
+                    >
+                      {device.status || "OFFLINE"}
+                    </span>
+                  </td>
 
-            <td className="p-3">{device.firmware_version || "-"}</td>
+                  <td className="p-3">{device.firmware_version || "-"}</td>
 
-            <td className="p-3">
-              <span
-                className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                  device.ota_status === "UP_TO_DATE"
-                    ? "bg-green-600"
-                    : device.ota_status === "UPDATE_AVAILABLE"
-                    ? "bg-yellow-600"
-                    : "bg-slate-700"
-                }`}
-              >
-                {device.ota_status || "UNKNOWN"}
-              </span>
-            </td>
+                  <td className="p-3">
+                    <span
+                      className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                        device.ota_status === "UP_TO_DATE"
+                          ? "bg-green-600"
+                          : device.ota_status === "UPDATE_AVAILABLE"
+                          ? "bg-yellow-600"
+                          : "bg-slate-700"
+                      }`}
+                    >
+                      {device.ota_status || "UNKNOWN"}
+                    </span>
+                  </td>
 
-            <td className="p-3">{device.latest_firmware_version || "-"}</td>
+                  <td className="p-3">
+                    {device.latest_firmware_version || "-"}
+                  </td>
 
-            <td className="p-3">
-              {device.last_ota_check
-                ? new Date(device.last_ota_check).toLocaleString()
-                : "-"}
-            </td>
+                  <td className="p-3">
+                    {device.last_ota_check
+                      ? new Date(device.last_ota_check).toLocaleString()
+                      : "-"}
+                  </td>
 
-            <td className="p-3">
-              {device.last_seen
-                ? new Date(device.last_seen).toLocaleString()
-                : "N/A"}
-            </td>
+                  <td className="p-3">
+                    {device.last_seen
+                      ? new Date(device.last_seen).toLocaleString()
+                      : "N/A"}
+                  </td>
 
-            <td className="p-3">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => sendCommand(device.device_id, "LED_ON")}
-                  className="px-3 py-1 rounded-lg bg-green-600 hover:bg-green-700"
-                >
-                  LED ON
-                </button>
+                  <td className="p-3">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => sendCommand(device.device_id, "LED_ON")}
+                        className="px-3 py-1 rounded-lg bg-green-600 hover:bg-green-700"
+                      >
+                        LED ON
+                      </button>
 
-                <button
-                  onClick={() => sendCommand(device.device_id, "LED_OFF")}
-                  className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700"
-                >
-                  LED OFF
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</section>
+                      <button
+                        onClick={() => sendCommand(device.device_id, "LED_OFF")}
+                        className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700"
+                      >
+                        LED OFF
+                      </button>
+
+                      <Link
+                        to={`/devices/${device.device_id}`}
+                        className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700"
+                      >
+                        View Details
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {devices.length === 0 && (
+                <tr>
+                  <td className="p-3 text-slate-400" colSpan="8">
+                    No registered devices found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section>
         <h2 className="text-xl font-semibold mb-3">Latest Telemetry</h2>
@@ -152,6 +172,7 @@ function App() {
                 <th className="p-3">Time</th>
               </tr>
             </thead>
+
             <tbody>
               {telemetry.map((item) => (
                 <tr key={item.id} className="border-t border-slate-800">
@@ -166,11 +187,30 @@ function App() {
                   </td>
                 </tr>
               ))}
+
+              {telemetry.length === 0 && (
+                <tr>
+                  <td className="p-3 text-slate-400" colSpan="5">
+                    No telemetry data found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </section>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/devices/:deviceId" element={<DeviceDetails />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
