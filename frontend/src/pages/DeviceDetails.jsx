@@ -28,6 +28,27 @@ export default function DeviceDetails() {
     }
   }
 
+  async function checkFirmwareUpdate() {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/firmware/check/${deviceId}?version=${device.firmware_version}`
+    );
+
+    const data = await res.json();
+
+    if (data.updateAvailable) {
+      alert(`Update available: ${data.latestVersion}`);
+    } else {
+      alert("Device firmware is already up to date");
+    }
+
+    fetchDeviceDetails();
+  } catch (err) {
+    console.error("Firmware check failed:", err);
+    alert("Failed to check firmware update");
+  }
+}
+
   useEffect(() => {
     fetchDeviceDetails();
 
@@ -73,6 +94,9 @@ export default function DeviceDetails() {
           <p>Current Firmware: {device.firmware_version || "-"}</p>
           <p>Latest Firmware: {device.latest_firmware_version || "-"}</p>
           <p>OTA Status: {device.ota_status || "-"}</p>
+          <button onClick={checkFirmwareUpdate} className="mt-4 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700">
+            Check Firmware Update
+          </button>
 
           <p>
             Last OTA Check:{" "}
