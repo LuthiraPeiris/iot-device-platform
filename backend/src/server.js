@@ -7,6 +7,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/firmware", express.static("firmware"));
 
 app.get("/", (req, res) => {
   res.send("IoT Device Platform Backend is running");
@@ -44,28 +45,34 @@ app.post("/api/devices/register", (req, res) => {
 });
 
 app.post("/api/devices/heartbeat", (req, res) => {
-  const { device_id } = req.body;
+  const { device_id, firmware_version } = req.body;
 
   if (!device_id) {
-    return res.status(400).json({ error: "device_id is required" });
+    return res.status(400).json({
+      message: "device_id is required",
+    });
   }
 
-  const query = `
-    UPDATE devices
-    SET status = 'ONLINE', last_seen = NOW()
-    WHERE device_id = ?
+  const sql = `
+    INSERT INTO devices (device_id, status, firmware_version)
+    VALUES (?, 'online', ?)
+    ON DUPLICATE KEY UPDATE
+      status = 'online',
+      firmware_version = VALUES(firmware_version),
+      last_seen = CURRENT_TIMESTAMP
   `;
 
-  db.query(query, [device_id], (err, result) => {
+  db.query(sql, [device_id, firmware_version || "1.0.0"], (err) => {
     if (err) {
-      return res.status(500).json({ error: err.message });
+      console.error("Heartbeat error:", err);
+      return res.status(500).json({
+        message: "Database error",
+      });
     }
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Device not found" });
-    }
-
-    res.json({ message: "Heartbeat received. Device is ONLINE" });
+    res.json({
+      message: "Heartbeat updated successfully",
+    });
   });
 });
 
@@ -77,6 +84,9 @@ app.get("/api/devices", (req, res) => {
       device_name,
       device_type,
       firmware_version,
+      ota_status,
+      latest_firmware_version,
+      last_ota_check,
       CASE
         WHEN last_seen >= NOW() - INTERVAL 30 SECOND THEN 'ONLINE'
         ELSE 'OFFLINE'
@@ -241,6 +251,54 @@ app.post("/api/devices/command/ack", (req, res) => {
 
     res.json({ message: "Command acknowledged" });
   });
+});
+
+app.get("/api/firmware/check/:deviceId", (req, res) => {
+  const { deviceId } = req.params;
+  const currentVersion = req.query.version;
+
+  const latestVersion = "1.0.1";
+
+  const otaStatus =
+    currentVersion !== latestVersion ? "UPDATE_AVAILABLE" : "UP_TO_DATE";
+
+  const updateQuery = `
+    UPDATE devices
+    SET 
+      firmware_version = ?,
+      latest_firmware_version = ?,
+      ota_status = ?,
+      last_ota_check = NOW()
+    WHERE device_id = ?
+  `;
+
+  db.query(
+    updateQuery,
+    [currentVersion, latestVersion, otaStatus, deviceId],
+    (err) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (currentVersion !== latestVersion) {
+        return res.json({
+          updateAvailable: true,
+          deviceId,
+          currentVersion,
+          latestVersion,
+          firmwareUrl:
+            "http://192.168.8.102:5000/firmware/esp32-001-v1.0.1.bin",
+        });
+      }
+
+      res.json({
+        updateAvailable: false,
+        deviceId,
+        currentVersion,
+        latestVersion,
+      });
+    }
+  );
 });
 
 app.listen(PORT, "0.0.0.0", () => {

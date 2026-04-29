@@ -50,49 +50,93 @@ function App() {
       </p>
 
       <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-3">Registered Devices</h2>
+  <h2 className="text-xl font-semibold mb-3">Registered Devices</h2>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-800">
-          <table className="w-full text-left">
-            <thead className="bg-slate-900">
-              <tr>
-                <th className="p-3">Device ID</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Last Seen</th>
-                <th className="p-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {devices.map((device) => (
-                <tr key={device.device_id} className="border-t border-slate-800">
-                  <td className="p-3">{device.device_id}</td>
-                  <td className="p-3">{device.status}</td>
-                  <td className="p-3">
-                    {device.last_seen
-                      ? new Date(device.last_seen).toLocaleString()
-                      : "N/A"}
-                  </td>
-                  <td className="p-3 flex gap-2">
-                    <button
-                      onClick={() => sendCommand(device.device_id, "LED_ON")}
-                      className="px-3 py-1 rounded-lg bg-green-600 hover:bg-green-700"
-                    >
-                      LED ON
-                    </button>
+  <div className="overflow-x-auto rounded-xl border border-slate-800">
+    <table className="w-full text-left">
+      <thead className="bg-slate-900">
+        <tr>
+          <th className="p-3">Device ID</th>
+          <th className="p-3">Status</th>
+          <th className="p-3">Current Firmware</th>
+          <th className="p-3">OTA Status</th>
+          <th className="p-3">Latest Firmware</th>
+          <th className="p-3">Last OTA Check</th>
+          <th className="p-3">Last Seen</th>
+          <th className="p-3">Actions</th>
+        </tr>
+      </thead>
 
-                    <button
-                      onClick={() => sendCommand(device.device_id, "LED_OFF")}
-                      className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700"
-                    >
-                      LED OFF
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <tbody>
+        {devices.map((device) => (
+          <tr key={device.device_id} className="border-t border-slate-800">
+            <td className="p-3 font-medium">{device.device_id}</td>
+
+            <td className="p-3">
+              <span
+                className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                  device.status === "ONLINE"
+                    ? "bg-green-600"
+                    : "bg-slate-700"
+                }`}
+              >
+                {device.status || "OFFLINE"}
+              </span>
+            </td>
+
+            <td className="p-3">{device.firmware_version || "-"}</td>
+
+            <td className="p-3">
+              <span
+                className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                  device.ota_status === "UP_TO_DATE"
+                    ? "bg-green-600"
+                    : device.ota_status === "UPDATE_AVAILABLE"
+                    ? "bg-yellow-600"
+                    : "bg-slate-700"
+                }`}
+              >
+                {device.ota_status || "UNKNOWN"}
+              </span>
+            </td>
+
+            <td className="p-3">{device.latest_firmware_version || "-"}</td>
+
+            <td className="p-3">
+              {device.last_ota_check
+                ? new Date(device.last_ota_check).toLocaleString()
+                : "-"}
+            </td>
+
+            <td className="p-3">
+              {device.last_seen
+                ? new Date(device.last_seen).toLocaleString()
+                : "N/A"}
+            </td>
+
+            <td className="p-3">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => sendCommand(device.device_id, "LED_ON")}
+                  className="px-3 py-1 rounded-lg bg-green-600 hover:bg-green-700"
+                >
+                  LED ON
+                </button>
+
+                <button
+                  onClick={() => sendCommand(device.device_id, "LED_OFF")}
+                  className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700"
+                >
+                  LED OFF
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</section>
 
       <section>
         <h2 className="text-xl font-semibold mb-3">Latest Telemetry</h2>
