@@ -9,12 +9,13 @@ app.use(cors());
 app.use(express.json());
 app.use("/firmware", express.static("firmware"));
 
+const PORT = process.env.PORT || 5000;
+
 app.get("/", (req, res) => {
   res.send("IoT Device Platform Backend is running");
 });
 
-const PORT = process.env.PORT || 5000;
-
+// Register device
 app.post("/api/devices/register", (req, res) => {
   const { device_id, device_name, device_type, firmware_version } = req.body;
 
@@ -44,6 +45,7 @@ app.post("/api/devices/register", (req, res) => {
   );
 });
 
+// Device heartbeat
 app.post("/api/devices/heartbeat", (req, res) => {
   const { device_id, firmware_version } = req.body;
 
@@ -54,8 +56,8 @@ app.post("/api/devices/heartbeat", (req, res) => {
   }
 
   const sql = `
-    INSERT INTO devices (device_id, status, firmware_version)
-    VALUES (?, 'online', ?)
+    INSERT INTO devices (device_id, status, firmware_version, last_seen)
+    VALUES (?, 'online', ?, CURRENT_TIMESTAMP)
     ON DUPLICATE KEY UPDATE
       status = 'online',
       firmware_version = VALUES(firmware_version),
@@ -67,6 +69,7 @@ app.post("/api/devices/heartbeat", (req, res) => {
       console.error("Heartbeat error:", err);
       return res.status(500).json({
         message: "Database error",
+        error: err.message,
       });
     }
 
@@ -76,6 +79,7 @@ app.post("/api/devices/heartbeat", (req, res) => {
   });
 });
 
+// Get all devices
 app.get("/api/devices", (req, res) => {
   const query = `
     SELECT 
@@ -99,6 +103,7 @@ app.get("/api/devices", (req, res) => {
 
   db.query(query, (err, results) => {
     if (err) {
+      console.error("Devices fetch error:", err);
       return res.status(500).json({ error: err.message });
     }
 
@@ -106,6 +111,7 @@ app.get("/api/devices", (req, res) => {
   });
 });
 
+// Save telemetry from ESP32
 app.post("/api/devices/telemetry", (req, res) => {
   const { device_id, temperature, battery, wifi_signal } = req.body;
 
@@ -123,6 +129,7 @@ app.post("/api/devices/telemetry", (req, res) => {
     [device_id, temperature, battery, wifi_signal],
     (err) => {
       if (err) {
+        console.error("Telemetry insert error:", err);
         return res.status(500).json({ error: err.message });
       }
 
@@ -131,6 +138,29 @@ app.post("/api/devices/telemetry", (req, res) => {
   );
 });
 
+// Get latest telemetry for dashboard
+app.get("/api/devices/telemetry", (req, res) => {
+  const sql = `
+    SELECT *
+    FROM telemetry
+    ORDER BY created_at DESC
+    LIMIT 50
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Telemetry fetch error:", err);
+      return res.status(500).json({
+        message: "Database error",
+        error: err.message,
+      });
+    }
+
+    res.json(results);
+  });
+});
+
+// Get telemetry for one device
 app.get("/api/devices/:deviceId/telemetry", (req, res) => {
   const { deviceId } = req.params;
 
@@ -150,6 +180,7 @@ app.get("/api/devices/:deviceId/telemetry", (req, res) => {
 
   db.query(query, [deviceId], (err, results) => {
     if (err) {
+      console.error("Device telemetry fetch error:", err);
       return res.status(500).json({ error: err.message });
     }
 
@@ -157,24 +188,49 @@ app.get("/api/devices/:deviceId/telemetry", (req, res) => {
   });
 });
 
-app.get("/api/devices/telemetry", (req, res) => {
-  const sql = `
-    SELECT *
-    FROM telemetry
-    ORDER BY created_at DESC
-    LIMIT 50
+// Get one device details
+app.get("/api/devices/:deviceId", (req, res) => {
+  const { deviceId } = req.params;
+
+  const query = `
+    SELECT 
+      id,
+      device_id,
+      device_name,
+      device_type,
+      firmware_version,
+      ota_status,
+      latest_firmware_version,
+      last_ota_check,
+      CASE
+        WHEN last_seen >= NOW() - INTERVAL 30 SECOND THEN 'ONLINE'
+        ELSE 'OFFLINE'
+      END AS status,
+      last_seen,
+      created_at
+    FROM devices
+    WHERE device_id = ?
+    LIMIT 1
   `;
 
-  db.query(sql, (err, results) => {
+  db.query(query, [deviceId], (err, results) => {
     if (err) {
-      console.error("Telemetry fetch error:", err);
-      return res.status(500).json({ message: "Database error" });
+      console.error("Device details fetch error:", err);
+      return res.status(500).json({
+        message: "Server error",
+        error: err.message,
+      });
     }
 
-    res.json(results);
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Device not found" });
+    }
+
+    res.json(results[0]);
   });
 });
 
+// Send command from dashboard
 app.post("/api/devices/command", (req, res) => {
   const { device_id, command } = req.body;
 
@@ -192,7 +248,10 @@ app.post("/api/devices/command", (req, res) => {
   db.query(sql, [device_id, command], (err, result) => {
     if (err) {
       console.error("Command insert error:", err);
-      return res.status(500).json({ message: "Database error" });
+      return res.status(500).json({
+        message: "Database error",
+        error: err.message,
+      });
     }
 
     res.json({
@@ -202,6 +261,7 @@ app.post("/api/devices/command", (req, res) => {
   });
 });
 
+// ESP32 checks pending command
 app.get("/api/devices/command/:device_id", (req, res) => {
   const { device_id } = req.params;
 
@@ -216,7 +276,10 @@ app.get("/api/devices/command/:device_id", (req, res) => {
   db.query(sql, [device_id], (err, results) => {
     if (err) {
       console.error("Command fetch error:", err);
-      return res.status(500).json({ message: "Database error" });
+      return res.status(500).json({
+        message: "Database error",
+        error: err.message,
+      });
     }
 
     if (results.length === 0) {
@@ -227,6 +290,7 @@ app.get("/api/devices/command/:device_id", (req, res) => {
   });
 });
 
+// ESP32 confirms command executed
 app.post("/api/devices/command/ack", (req, res) => {
   const { command_id } = req.body;
 
@@ -246,13 +310,17 @@ app.post("/api/devices/command/ack", (req, res) => {
   db.query(sql, [command_id], (err) => {
     if (err) {
       console.error("Command ACK error:", err);
-      return res.status(500).json({ message: "Database error" });
+      return res.status(500).json({
+        message: "Database error",
+        error: err.message,
+      });
     }
 
     res.json({ message: "Command acknowledged" });
   });
 });
 
+// Firmware update check
 app.get("/api/firmware/check/:deviceId", (req, res) => {
   const { deviceId } = req.params;
   const currentVersion = req.query.version;
@@ -277,6 +345,7 @@ app.get("/api/firmware/check/:deviceId", (req, res) => {
     [currentVersion, latestVersion, otaStatus, deviceId],
     (err) => {
       if (err) {
+        console.error("Firmware check error:", err);
         return res.status(500).json({ error: err.message });
       }
 
@@ -304,4 +373,3 @@ app.get("/api/firmware/check/:deviceId", (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
-
