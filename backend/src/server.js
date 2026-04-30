@@ -415,24 +415,69 @@ app.get("/api/firmware/check/:deviceId", (req, res) => {
           });
         }
 
-        if (currentVersion !== latestVersion) {
-          return res.json({
-            updateAvailable: true,
-            deviceId,
-            currentVersion,
-            latestVersion,
-            firmwareUrl,
-          });
-        }
+        const logStatus =
+  currentVersion !== latestVersion ? "UPDATE_AVAILABLE" : "UP_TO_DATE";
 
-        res.json({
-          updateAvailable: false,
-          deviceId,
-          currentVersion,
-          latestVersion,
-        });
+const logMessage =
+  currentVersion !== latestVersion
+    ? `Firmware update available from ${currentVersion} to ${latestVersion}`
+    : `Device firmware is already up to date`;
+
+const insertLogQuery = `
+  INSERT INTO ota_logs (device_id, current_version, target_version, status, message)
+  VALUES (?, ?, ?, ?, ?)
+`;
+
+db.query(
+  insertLogQuery,
+  [deviceId, currentVersion, latestVersion, logStatus, logMessage],
+  (logErr) => {
+    if (logErr) {
+      console.error("OTA log insert error:", logErr);
+    }
+
+    if (currentVersion !== latestVersion) {
+      return res.json({
+        updateAvailable: true,
+        deviceId,
+        currentVersion,
+        latestVersion,
+        firmwareUrl,
+      });
+    }
+
+    res.json({
+      updateAvailable: false,
+      deviceId,
+      currentVersion,
+      latestVersion,
+    });
+  }
+);
       }
     );
+  });
+});
+
+// Get OTA logs
+app.get("/api/ota-logs", (req, res) => {
+  const query = `
+    SELECT *
+    FROM ota_logs
+    ORDER BY created_at DESC
+    LIMIT 100
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("OTA logs fetch error:", err);
+      return res.status(500).json({
+        message: "Database error",
+        error: err.message,
+      });
+    }
+
+    res.json(results);
   });
 });
 
