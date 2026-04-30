@@ -61,15 +61,36 @@ export default function FirmwareManagement() {
     }
   };
 
+  const setAsLatest = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/firmware/${id}/latest`, {
+        method: "PUT",
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("Firmware marked as latest");
+        fetchFirmwares();
+      } else {
+        alert(data.message || "Failed to update latest firmware");
+      }
+    } catch (error) {
+      console.error("Error updating latest firmware:", error);
+      alert("Error updating latest firmware");
+    }
+  };
+
   return (
     <div className="p-6 text-white">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Firmware Management</h1>
 
         <Link
-            to="/"
-            className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600">
-            Back to Dashboard
+          to="/"
+          className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600"
+        >
+          Back to Dashboard
         </Link>
       </div>
 
@@ -134,18 +155,28 @@ export default function FirmwareManagement() {
                 firmwares.map((fw) => (
                   <tr key={fw.id} className="border-t border-slate-800">
                     <td className="p-3">{fw.version}</td>
+
                     <td className="p-3 text-blue-400">
                       <a href={fw.file_url} target="_blank" rel="noreferrer">
                         Download
                       </a>
                     </td>
+
                     <td className="p-3">
                       {fw.is_latest ? (
-                        <span className="text-green-400">Yes</span>
+                        <span className="text-green-400 font-semibold">
+                          Latest
+                        </span>
                       ) : (
-                        <span className="text-slate-400">No</span>
+                        <button
+                          onClick={() => setAsLatest(fw.id)}
+                          className="px-3 py-1 rounded bg-yellow-600 hover:bg-yellow-700"
+                        >
+                          Set as Latest
+                        </button>
                       )}
                     </td>
+
                     <td className="p-3">
                       {fw.created_at
                         ? new Date(fw.created_at).toLocaleString()

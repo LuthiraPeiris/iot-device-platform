@@ -7,7 +7,7 @@ const char* ssid = "Kavi";
 const char* password = "A26YT15842R";
 
 const String DEVICE_ID = "esp32-001";
-const String FIRMWARE_VERSION = "1.0.3";
+const String FIRMWARE_VERSION = "1.0.2";
 
 const String SERVER_BASE_URL = "http://192.168.8.107:5000";
 const String BASE_URL = SERVER_BASE_URL + "/api/devices";
@@ -16,16 +16,14 @@ const String BASE_URL = SERVER_BASE_URL + "/api/devices";
 
 unsigned long lastSendTime = 0;
 unsigned long lastCommandCheckTime = 0;
+unsigned long lastFirmwareCheckTime = 0;
 
 const unsigned long sendInterval = 10000;
 const unsigned long commandCheckInterval = 3000;
+const unsigned long firmwareCheckInterval = 30000;
 
 String getLedStatus() {
-  if (digitalRead(LED_PIN) == HIGH) {
-    return "ON";
-  } else {
-    return "OFF";
-  }
+  return digitalRead(LED_PIN) == HIGH ? "ON" : "OFF";
 }
 
 void acknowledgeCommand(int commandId);
@@ -53,9 +51,7 @@ void setup() {
   Serial.print("ESP32 IP: ");
   Serial.println(WiFi.localIP());
 
-  Serial.println("Running NEW firmware version 1.0.3");
-
-  Serial.print("Firmware Version: ");
+  Serial.print("Running firmware version ");
   Serial.println(FIRMWARE_VERSION);
 
   sendHeartbeat();
@@ -193,7 +189,12 @@ void checkForFirmwareUpdate() {
 
   HTTPClient http;
 
-  String url = SERVER_BASE_URL + "/api/firmware/latest";
+  String url =
+    SERVER_BASE_URL +
+    "/api/firmware/check/" +
+    DEVICE_ID +
+    "?version=" +
+    FIRMWARE_VERSION;
 
   Serial.println("Checking latest firmware...");
   Serial.println(url);
@@ -202,7 +203,7 @@ void checkForFirmwareUpdate() {
 
   int httpResponseCode = http.GET();
 
-  Serial.print("Firmware latest API response code: ");
+  Serial.print("Firmware check API response code: ");
   Serial.println(httpResponseCode);
 
   if (httpResponseCode == 200) {
@@ -219,9 +220,9 @@ void checkForFirmwareUpdate() {
       return;
     }
 
-    bool updateAvailable = doc["update_available"];
-    String latestVersion = doc["version"];
-    String firmwareUrl = doc["file_url"];
+    bool updateAvailable = doc["updateAvailable"];
+    String latestVersion = doc["latestVersion"] | "";
+    String firmwareUrl = doc["firmwareUrl"] | "";
 
     Serial.print("Current firmware version: ");
     Serial.println(FIRMWARE_VERSION);
@@ -229,7 +230,7 @@ void checkForFirmwareUpdate() {
     Serial.print("Latest firmware version: ");
     Serial.println(latestVersion);
 
-    if (updateAvailable && latestVersion != FIRMWARE_VERSION) {
+    if (updateAvailable && latestVersion != FIRMWARE_VERSION && firmwareUrl != "") {
       Serial.println("New firmware available!");
       Serial.print("Firmware URL: ");
       Serial.println(firmwareUrl);
@@ -264,7 +265,7 @@ void checkForFirmwareUpdate() {
       http.end();
     }
   } else {
-    Serial.print("Firmware latest check failed: ");
+    Serial.print("Firmware check failed: ");
     Serial.println(httpResponseCode);
     Serial.println(http.getString());
     http.end();
@@ -283,5 +284,10 @@ void loop() {
   if (currentTime - lastCommandCheckTime >= commandCheckInterval) {
     checkCommand();
     lastCommandCheckTime = currentTime;
+  }
+
+  if (currentTime - lastFirmwareCheckTime >= firmwareCheckInterval) {
+    checkForFirmwareUpdate();
+    lastFirmwareCheckTime = currentTime;
   }
 }
