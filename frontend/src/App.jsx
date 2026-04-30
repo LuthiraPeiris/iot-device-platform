@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import DeviceDetails from "./pages/DeviceDetails";
 import axios from "axios";
 
-const API_BASE_URL = "http://192.168.8.106:5000/api/devices";
+const API_BASE_URL = "http://192.168.8.107:5000/api/devices";
 
 function Dashboard() {
   const [devices, setDevices] = useState([]);

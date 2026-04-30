@@ -9,7 +9,7 @@ const char* password = "A26YT15842R";
 const String DEVICE_ID = "esp32-001";
 const String FIRMWARE_VERSION = "1.0.1";
 
-const String SERVER_BASE_URL = "http://192.168.8.106:5000";
+const String SERVER_BASE_URL = "http://192.168.8.107:5000";
 const String BASE_URL = SERVER_BASE_URL + "/api/devices";
 
 #define LED_PIN 2
