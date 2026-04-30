@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import DeviceDetails from "./pages/DeviceDetails";
+import FirmwareManagement from "./pages/FirmwareManagement";
 import axios from "axios";
 
 const API_BASE_URL = "http://192.168.8.107:5000/api/devices";
@@ -44,13 +45,24 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-6">
-      <h1 className="text-3xl font-bold mb-2">
-        IoT Device Management Dashboard
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">
+            IoT Device Management Dashboard
+          </h1>
 
-      <p className="text-slate-400 mb-6">
-        ESP32 device registry, heartbeat, telemetry monitoring, and OTA status
-      </p>
+          <p className="text-slate-400">
+            ESP32 device registry, heartbeat, telemetry monitoring, and OTA status
+          </p>
+        </div>
+
+        <Link
+          to="/firmware"
+          className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700"
+        >
+          Firmware Management
+        </Link>
+      </div>
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">Registered Devices</h2>
@@ -209,6 +221,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/devices/:deviceId" element={<DeviceDetails />} />
+        <Route path="/firmware" element={<FirmwareManagement />} />
       </Routes>
     </BrowserRouter>
   );
