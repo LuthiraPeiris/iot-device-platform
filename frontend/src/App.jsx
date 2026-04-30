@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import DeviceDetails from "./pages/DeviceDetails";
 import FirmwareManagement from "./pages/FirmwareManagement";
+import OtaLogs from "./pages/OtaLogs";
 import axios from "axios";
 
 const API_BASE_URL = "http://192.168.8.107:5000/api/devices";
@@ -56,12 +57,21 @@ function Dashboard() {
           </p>
         </div>
 
-        <Link
-          to="/firmware"
-          className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700"
-        >
-          Firmware Management
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            to="/firmware"
+            className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700"
+          >
+            Firmware Management
+          </Link>
+
+          <Link
+            to="/ota-logs"
+            className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700"
+          >
+            OTA Logs
+          </Link>
+        </div>
       </div>
 
       <section className="mb-8">
@@ -222,6 +232,7 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/devices/:deviceId" element={<DeviceDetails />} />
         <Route path="/firmware" element={<FirmwareManagement />} />
+        <Route path="/ota-logs" element={<OtaLogs />} />
       </Routes>
     </BrowserRouter>
   );

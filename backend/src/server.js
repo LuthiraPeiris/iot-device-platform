@@ -9,6 +9,33 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/api/firmware", firmwareRoutes);
+
+app.put("/api/firmware/:id/latest", (req, res) => {
+  const { id } = req.params;
+
+  db.query("UPDATE firmware_versions SET is_latest = 0", (resetErr) => {
+    if (resetErr) {
+      return res.status(500).json({ error: resetErr.message });
+    }
+
+    db.query(
+      "UPDATE firmware_versions SET is_latest = 1 WHERE id = ?",
+      [id],
+      (updateErr, result) => {
+        if (updateErr) {
+          return res.status(500).json({ error: updateErr.message });
+        }
+
+        if (result.affectedRows === 0) {
+          return res.status(404).json({ message: "Firmware not found" });
+        }
+
+        res.json({ message: "Firmware marked as latest" });
+      }
+    );
+  });
+});
+
 app.use("/firmware", express.static("firmware"));
 
 const PORT = process.env.PORT || 5000;
@@ -327,49 +354,131 @@ app.get("/api/firmware/check/:deviceId", (req, res) => {
   const { deviceId } = req.params;
   const currentVersion = req.query.version;
 
-  const latestVersion = "1.0.2";
+  if (!currentVersion) {
+    return res.status(400).json({
+      message: "Current firmware version is required",
+    });
+  }
 
-  const otaStatus =
-    currentVersion !== latestVersion ? "UPDATE_AVAILABLE" : "UP_TO_DATE";
-
-  const updateQuery = `
-    UPDATE devices
-    SET 
-      firmware_version = ?,
-      latest_firmware_version = ?,
-      ota_status = ?,
-      last_ota_check = NOW()
-    WHERE device_id = ?
+  const latestFirmwareQuery = `
+    SELECT *
+    FROM firmware_versions
+    WHERE is_latest = 1
+    ORDER BY created_at DESC
+    LIMIT 1
   `;
 
-  db.query(
-    updateQuery,
-    [currentVersion, latestVersion, otaStatus, deviceId],
-    (err) => {
-      if (err) {
-        console.error("Firmware check error:", err);
-        return res.status(500).json({ error: err.message });
-      }
+  db.query(latestFirmwareQuery, (err, results) => {
+    if (err) {
+      console.error("Latest firmware fetch error:", err);
+      return res.status(500).json({
+        message: "Database error",
+        error: err.message,
+      });
+    }
 
-      if (currentVersion !== latestVersion) {
-        return res.json({
-          updateAvailable: true,
-          deviceId,
-          currentVersion,
-          latestVersion,
-          firmwareUrl:
-            "http://192.168.8.106:5000/firmware/esp32-001-v1.0.2.bin",
-        });
-      }
-
-      res.json({
+    if (results.length === 0) {
+      return res.json({
         updateAvailable: false,
         deviceId,
         currentVersion,
-        latestVersion,
+        message: "No latest firmware found",
       });
     }
-  );
+
+    const latestFirmware = results[0];
+    const latestVersion = latestFirmware.version;
+    const firmwareUrl = latestFirmware.file_url;
+
+    const otaStatus =
+      currentVersion !== latestVersion ? "UPDATE_AVAILABLE" : "UP_TO_DATE";
+
+    const updateDeviceQuery = `
+      UPDATE devices
+      SET 
+        firmware_version = ?,
+        latest_firmware_version = ?,
+        ota_status = ?,
+        last_ota_check = NOW()
+      WHERE device_id = ?
+    `;
+
+    db.query(
+      updateDeviceQuery,
+      [currentVersion, latestVersion, otaStatus, deviceId],
+      (updateErr) => {
+        if (updateErr) {
+          console.error("Firmware check update error:", updateErr);
+          return res.status(500).json({
+            message: "Database error",
+            error: updateErr.message,
+          });
+        }
+
+        const logStatus =
+  currentVersion !== latestVersion ? "UPDATE_AVAILABLE" : "UP_TO_DATE";
+
+const logMessage =
+  currentVersion !== latestVersion
+    ? `Firmware update available from ${currentVersion} to ${latestVersion}`
+    : `Device firmware is already up to date`;
+
+const insertLogQuery = `
+  INSERT INTO ota_logs (device_id, current_version, target_version, status, message)
+  VALUES (?, ?, ?, ?, ?)
+`;
+
+db.query(
+  insertLogQuery,
+  [deviceId, currentVersion, latestVersion, logStatus, logMessage],
+  (logErr) => {
+    if (logErr) {
+      console.error("OTA log insert error:", logErr);
+    }
+
+    if (currentVersion !== latestVersion) {
+      return res.json({
+        updateAvailable: true,
+        deviceId,
+        currentVersion,
+        latestVersion,
+        firmwareUrl,
+      });
+    }
+
+    res.json({
+      updateAvailable: false,
+      deviceId,
+      currentVersion,
+      latestVersion,
+    });
+  }
+);
+      }
+    );
+  });
+});
+
+// Get OTA logs
+app.get("/api/ota-logs", (req, res) => {
+  const query = `
+    SELECT *
+    FROM ota_logs
+    ORDER BY created_at DESC
+    LIMIT 100
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("OTA logs fetch error:", err);
+      return res.status(500).json({
+        message: "Database error",
+        error: err.message,
+      });
+    }
+
+    res.json(results);
+  });
 });
 
 app.listen(PORT, "0.0.0.0", () => {
