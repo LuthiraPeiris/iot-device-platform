@@ -36,7 +36,7 @@ router.get("/", (req, res) => {
 
 // POST upload firmware .bin file
 router.post("/upload", upload.single("firmware"), (req, res) => {
-  const { version } = req.body;
+  const { version, target_group } = req.body;
 
   if (!version) {
     return res.status(400).json({ error: "Firmware version is required" });
@@ -59,12 +59,12 @@ router.post("/upload", upload.single("firmware"), (req, res) => {
     }
 
     const sql = `
-      INSERT INTO firmware_versions 
-      (version, file_name, file_url, is_latest) 
-      VALUES (?, ?, ?, ?)
+      INSERT INTO firmware_versions
+      (version, file_name, file_url, is_latest, target_group)
+      VALUES (?, ?, ?, ?, ?)
     `;
 
-    db.query(sql, [version, fileName, fileUrl, 1], (error, result) => {
+    db.query(sql, [version, fileName, fileUrl, 1, target_group || "default"], (error, result) => {
       if (error) {
         console.error("Error saving firmware:", error);
         return res.status(500).json({
