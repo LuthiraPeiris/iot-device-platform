@@ -8,6 +8,7 @@ export default function FirmwareManagement() {
   const [file, setFile] = useState(null);
   const [firmwares, setFirmwares] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [targetGroup, setTargetGroup] = useState("");
 
   const fetchFirmwares = async () => {
     try {
@@ -34,6 +35,7 @@ export default function FirmwareManagement() {
     const formData = new FormData();
     formData.append("version", version);
     formData.append("firmware", file);
+    formData.append("target_group", targetGroup);
 
     try {
       setUploading(true);
@@ -102,12 +104,21 @@ export default function FirmwareManagement() {
 
         <div className="mb-4">
           <label className="block mb-2">Firmware Version</label>
+
           <input
             type="text"
             placeholder="Example: 1.0.3"
             value={version}
             onChange={(e) => setVersion(e.target.value)}
             className="w-full p-3 rounded bg-slate-800 border border-slate-700"
+          />
+
+          <input
+            type="text"
+            placeholder="Target Group"
+            value={targetGroup}
+            onChange={(e) => setTargetGroup(e.target.value)}
+            className="bg-slate-800 text-white px-3 py-2 rounded"
           />
         </div>
 
