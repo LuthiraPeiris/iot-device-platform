@@ -85,6 +85,7 @@ function Dashboard() {
                 <th className="p-3">Status</th>
                 <th className="p-3">Current Firmware</th>
                 <th className="p-3">OTA Status</th>
+                <th className="p-3">Health</th>
                 <th className="p-3">Latest Firmware</th>
                 <th className="p-3">Last OTA Check</th>
                 <th className="p-3">Last Seen</th>
@@ -122,6 +123,23 @@ function Dashboard() {
                       }`}
                     >
                       {device.ota_status || "UNKNOWN"}
+                    </span>
+                  </td>
+
+                  <td className="p-3">
+                    <span
+                      title={device.health_message || "No health message"}
+                      className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                        device.health_status === "GOOD"
+                          ? "bg-green-600"
+                          : device.health_status === "WARNING"
+                          ? "bg-yellow-600"
+                          : device.health_status === "CRITICAL"
+                          ? "bg-red-600"
+                          : "bg-slate-700"
+                      }`}
+                    >
+                      {device.health_status || "UNKNOWN"}
                     </span>
                   </td>
 
@@ -170,7 +188,7 @@ function Dashboard() {
 
               {devices.length === 0 && (
                 <tr>
-                  <td className="p-3 text-slate-400" colSpan="8">
+                  <td className="p-3 text-slate-400" colSpan="9">
                     No registered devices found.
                   </td>
                 </tr>

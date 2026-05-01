@@ -118,6 +118,8 @@ app.get("/api/devices", (req, res) => {
       device_type,
       firmware_version,
       ota_status,
+      health_status,
+      health_message,
       latest_firmware_version,
       last_ota_check,
       CASE
@@ -270,6 +272,8 @@ app.get("/api/devices/:deviceId", (req, res) => {
       device_type,
       firmware_version,
       ota_status,
+      health_status,
+      health_message, 
       latest_firmware_version,
       last_ota_check,
       CASE
