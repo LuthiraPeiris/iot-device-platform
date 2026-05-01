@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-const API_BASE = "http://192.168.8.108:5000";
+import { API_BASE_URL } from "../config";
 
 export default function DeviceDetails() {
   const { deviceId } = useParams();
@@ -12,7 +12,7 @@ export default function DeviceDetails() {
 
   async function fetchDeviceDetails() {
     try {
-      const deviceRes = await fetch(`${API_BASE}/api/devices/${deviceId}`);
+      const deviceRes = await fetch(`${API_BASE_URL}/api/devices/${deviceId}`);
 
       if (!deviceRes.ok) {
         throw new Error("Failed to fetch device");
@@ -21,7 +21,7 @@ export default function DeviceDetails() {
       const deviceData = await deviceRes.json();
 
       const telemetryRes = await fetch(
-        `${API_BASE}/api/devices/${deviceId}/telemetry`
+        `${API_BASE_URL}/api/devices/${deviceId}/telemetry`
       );
 
       if (!telemetryRes.ok) {
@@ -49,7 +49,7 @@ export default function DeviceDetails() {
       }
 
       const res = await fetch(
-        `${API_BASE}/api/firmware/check/${deviceId}?version=${device.firmware_version}`
+        `${API_BASE_URL}/api/firmware/check/${deviceId}?version=${device.firmware_version}`
       );
 
       if (!res.ok) {
@@ -116,6 +116,29 @@ export default function DeviceDetails() {
           <p>Current Firmware: {device.firmware_version || "-"}</p>
           <p>Latest Firmware: {device.latest_firmware_version || "-"}</p>
           <p>OTA Status: {device.ota_status || "-"}</p>
+          <p>Device Group: {device.device_group || "default"}</p>
+
+          <p>
+            Health Status:{" "}
+            <span
+              className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                device.health_status === "GOOD"
+                  ? "bg-green-600"
+                  : device.health_status === "WARNING"
+                  ? "bg-yellow-600"
+                  : device.health_status === "CRITICAL"
+                  ? "bg-red-600"
+                  : "bg-slate-700"
+              }`}
+            >
+              {device.health_status || "UNKNOWN"}
+            </span>
+          </p>
+
+          <p>
+            Health Message:{" "}
+            {device.health_message || "No health message"}
+          </p>
 
           <p>
             Last OTA Check:{" "}

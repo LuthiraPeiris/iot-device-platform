@@ -4,17 +4,27 @@ import DeviceDetails from "./pages/DeviceDetails";
 import FirmwareManagement from "./pages/FirmwareManagement";
 import OtaLogs from "./pages/OtaLogs";
 import axios from "axios";
+import { API_BASE_URL } from "./config";
 
-const API_BASE_URL = "http://192.168.8.108:5000/api/devices";
+const DEVICES_API_URL = `${API_BASE_URL}/api/devices`;
 
 function Dashboard() {
   const [devices, setDevices] = useState([]);
   const [telemetry, setTelemetry] = useState([]);
 
+  const totalDevices = devices.length;
+  const onlineDevices = devices.filter((d) => d.status === "ONLINE").length;
+  const updateAvailable = devices.filter(
+    (d) => d.ota_status === "UPDATE_AVAILABLE"
+  ).length;
+  const criticalDevices = devices.filter(
+    (d) => d.health_status === "CRITICAL"
+  ).length;
+
   const fetchData = async () => {
     try {
-      const devicesRes = await axios.get(API_BASE_URL);
-      const telemetryRes = await axios.get(`${API_BASE_URL}/telemetry`);
+      const devicesRes = await axios.get(DEVICES_API_URL);
+      const telemetryRes = await axios.get(`${DEVICES_API_URL}/telemetry`);
 
       setDevices(devicesRes.data);
       setTelemetry(telemetryRes.data);
@@ -25,7 +35,7 @@ function Dashboard() {
 
   const sendCommand = async (deviceId, command) => {
     try {
-      await axios.post(`${API_BASE_URL}/command`, {
+      await axios.post(`${DEVICES_API_URL}/command`, {
         device_id: deviceId,
         command: command,
       });
@@ -74,6 +84,34 @@ function Dashboard() {
         </div>
       </div>
 
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <p className="text-slate-400 text-sm">Total Devices</p>
+          <h2 className="text-3xl font-bold mt-2">{totalDevices}</h2>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <p className="text-slate-400 text-sm">Online Devices</p>
+          <h2 className="text-3xl font-bold mt-2 text-green-400">
+            {onlineDevices}
+          </h2>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <p className="text-slate-400 text-sm">Update Available</p>
+          <h2 className="text-3xl font-bold mt-2 text-yellow-400">
+            {updateAvailable}
+          </h2>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <p className="text-slate-400 text-sm">Critical Devices</p>
+          <h2 className="text-3xl font-bold mt-2 text-red-400">
+            {criticalDevices}
+          </h2>
+        </div>
+      </section>
+
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">Registered Devices</h2>
 
@@ -82,9 +120,11 @@ function Dashboard() {
             <thead className="bg-slate-900">
               <tr>
                 <th className="p-3">Device ID</th>
+                <th className="p-3">Group</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Current Firmware</th>
                 <th className="p-3">OTA Status</th>
+                <th className="p-3">Health</th>
                 <th className="p-3">Latest Firmware</th>
                 <th className="p-3">Last OTA Check</th>
                 <th className="p-3">Last Seen</th>
@@ -96,6 +136,30 @@ function Dashboard() {
               {devices.map((device) => (
                 <tr key={device.device_id} className="border-t border-slate-800">
                   <td className="p-3 font-medium">{device.device_id}</td>
+
+                  <td className="p-3">
+                    <input
+                      type="text"
+                      defaultValue={device.device_group || "default"}
+                      onBlur={async (e) => {
+                        try {
+                          await axios.put(
+                            `${DEVICES_API_URL}/${device.device_id}/group`,
+                            {
+                              device_group: e.target.value,
+                            }
+                          );
+
+                          alert("Device group updated");
+                          window.location.reload();
+                        } catch (error) {
+                          console.error(error);
+                          alert("Failed to update device group");
+                        }
+                      }}
+                      className="bg-slate-800 text-white px-2 py-1 rounded"
+                    />
+                  </td>
 
                   <td className="p-3">
                     <span
@@ -122,6 +186,23 @@ function Dashboard() {
                       }`}
                     >
                       {device.ota_status || "UNKNOWN"}
+                    </span>
+                  </td>
+
+                  <td className="p-3">
+                    <span
+                      title={device.health_message || "No health message"}
+                      className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                        device.health_status === "GOOD"
+                          ? "bg-green-600"
+                          : device.health_status === "WARNING"
+                          ? "bg-yellow-600"
+                          : device.health_status === "CRITICAL"
+                          ? "bg-red-600"
+                          : "bg-slate-700"
+                      }`}
+                    >
+                      {device.health_status || "UNKNOWN"}
                     </span>
                   </td>
 
@@ -170,7 +251,7 @@ function Dashboard() {
 
               {devices.length === 0 && (
                 <tr>
-                  <td className="p-3 text-slate-400" colSpan="8">
+                  <td className="p-3 text-slate-400" colSpan="9">
                     No registered devices found.
                   </td>
                 </tr>
