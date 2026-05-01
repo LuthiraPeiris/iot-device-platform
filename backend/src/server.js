@@ -127,7 +127,8 @@ app.get("/api/devices", (req, res) => {
         ELSE 'OFFLINE'
       END AS status,
       last_seen,
-      created_at
+      created_at,
+      device_group
     FROM devices
     ORDER BY created_at DESC
   `;
@@ -281,7 +282,8 @@ app.get("/api/devices/:deviceId", (req, res) => {
         ELSE 'OFFLINE'
       END AS status,
       last_seen,
-      created_at
+      created_at,
+      device_group
     FROM devices
     WHERE device_id = ?
     LIMIT 1
