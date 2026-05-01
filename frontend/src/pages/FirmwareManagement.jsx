@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
-const API_BASE_URL = "http://192.168.8.108:5000";
 
 export default function FirmwareManagement() {
   const [version, setVersion] = useState("");

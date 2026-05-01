@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-const API_BASE = "http://192.168.8.108:5000";
+import { API_BASE_URL } from "../config";
 
 export default function DeviceDetails() {
   const { deviceId } = useParams();
@@ -12,7 +12,7 @@ export default function DeviceDetails() {
 
   async function fetchDeviceDetails() {
     try {
-      const deviceRes = await fetch(`${API_BASE}/api/devices/${deviceId}`);
+      const deviceRes = await fetch(`${API_BASE_URL}/api/devices/${deviceId}`);
 
       if (!deviceRes.ok) {
         throw new Error("Failed to fetch device");
@@ -21,7 +21,7 @@ export default function DeviceDetails() {
       const deviceData = await deviceRes.json();
 
       const telemetryRes = await fetch(
-        `${API_BASE}/api/devices/${deviceId}/telemetry`
+        `${API_BASE_URL}/api/devices/${deviceId}/telemetry`
       );
 
       if (!telemetryRes.ok) {
@@ -49,7 +49,7 @@ export default function DeviceDetails() {
       }
 
       const res = await fetch(
-        `${API_BASE}/api/firmware/check/${deviceId}?version=${device.firmware_version}`
+        `${API_BASE_URL}/api/firmware/check/${deviceId}?version=${device.firmware_version}`
       );
 
       if (!res.ok) {

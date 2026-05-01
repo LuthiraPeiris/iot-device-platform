@@ -4,8 +4,9 @@ import DeviceDetails from "./pages/DeviceDetails";
 import FirmwareManagement from "./pages/FirmwareManagement";
 import OtaLogs from "./pages/OtaLogs";
 import axios from "axios";
+import { API_BASE_URL } from "./config";
 
-const API_BASE_URL = "http://192.168.8.108:5000/api/devices";
+const DEVICES_API_URL = `${API_BASE_URL}/api/devices`;
 
 function Dashboard() {
   const [devices, setDevices] = useState([]);
@@ -22,8 +23,8 @@ function Dashboard() {
 
   const fetchData = async () => {
     try {
-      const devicesRes = await axios.get(API_BASE_URL);
-      const telemetryRes = await axios.get(`${API_BASE_URL}/telemetry`);
+      const devicesRes = await axios.get(DEVICES_API_URL);
+      const telemetryRes = await axios.get(`${DEVICES_API_URL}/telemetry`);
 
       setDevices(devicesRes.data);
       setTelemetry(telemetryRes.data);
@@ -34,7 +35,7 @@ function Dashboard() {
 
   const sendCommand = async (deviceId, command) => {
     try {
-      await axios.post(`${API_BASE_URL}/command`, {
+      await axios.post(`${DEVICES_API_URL}/command`, {
         device_id: deviceId,
         command: command,
       });
