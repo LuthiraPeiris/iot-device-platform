@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-const API_BASE_URL = "http://192.168.8.107:5000";
+const API_BASE_URL = "http://192.168.8.108:5000";
 
 export default function OtaLogs() {
   const [logs, setLogs] = useState([]);

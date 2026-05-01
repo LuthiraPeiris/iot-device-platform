@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-const API_BASE = "http://192.168.8.107:5000";
+const API_BASE = "http://192.168.8.108:5000";
 
 export default function DeviceDetails() {
   const { deviceId } = useParams();
