@@ -5,7 +5,7 @@ import FirmwareManagement from "./pages/FirmwareManagement";
 import OtaLogs from "./pages/OtaLogs";
 import axios from "axios";
 
-const API_BASE_URL = "http://192.168.8.107:5000/api/devices";
+const API_BASE_URL = "http://192.168.8.108:5000/api/devices";
 
 function Dashboard() {
   const [devices, setDevices] = useState([]);

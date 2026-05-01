@@ -144,6 +144,25 @@ app.get("/api/devices", (req, res) => {
 app.post("/api/devices/telemetry", (req, res) => {
   const { device_id, temperature, battery, wifi_signal } = req.body;
 
+  let healthStatus = "GOOD";
+let healthMessage = "Device is working normally";
+
+if (battery < 20) {
+  healthStatus = "CRITICAL";
+  healthMessage = "Battery level is critically low";
+} else if (battery < 40) {
+  healthStatus = "WARNING";
+  healthMessage = "Battery level is low";
+}
+
+if (wifi_signal < -85) {
+  healthStatus = "CRITICAL";
+  healthMessage = "WiFi signal is very weak";
+} else if (wifi_signal < -70 && healthStatus !== "CRITICAL") {
+  healthStatus = "WARNING";
+  healthMessage = "WiFi signal is weak";
+}
+
   if (!device_id) {
     return res.status(400).json({ error: "device_id is required" });
   }
@@ -162,7 +181,29 @@ app.post("/api/devices/telemetry", (req, res) => {
         return res.status(500).json({ error: err.message });
       }
 
-      res.json({ message: "Telemetry saved successfully" });
+      const updateHealthQuery = `
+  UPDATE devices
+  SET health_status = ?,
+      health_message = ?
+  WHERE device_id = ?
+`;
+
+db.query(
+  updateHealthQuery,
+  [healthStatus, healthMessage, device_id],
+  (healthErr) => {
+    if (healthErr) {
+      console.error("Health update error:", healthErr);
+      return res.status(500).json({ error: healthErr.message });
+    }
+
+    res.json({
+      message: "Telemetry saved and health updated successfully",
+      health_status: healthStatus,
+      health_message: healthMessage,
+    });
+  }
+);
     }
   );
 });
