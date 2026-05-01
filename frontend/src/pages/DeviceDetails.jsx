@@ -118,6 +118,28 @@ export default function DeviceDetails() {
           <p>OTA Status: {device.ota_status || "-"}</p>
 
           <p>
+            <strong>Health Status:</strong>{" "}
+            <span
+              className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                device.health_status === "GOOD"
+                  ? "bg-green-600"
+                  : device.health_status === "WARNING"
+                  ? "bg-yellow-600"
+                  : device.health_status === "CRITICAL"
+                  ? "bg-red-600"
+                  : "bg-slate-700"
+              }`}
+            >
+              {device.health_status || "UNKNOWN"}
+            </span>
+          </p>
+
+          <p>
+            <strong>Health Message:</strong>{" "}
+            {device.health_message || "No health message"}
+          </p>
+
+          <p>
             Last OTA Check:{" "}
             {device.last_ota_check
               ? new Date(device.last_ota_check).toLocaleString()

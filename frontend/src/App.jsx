@@ -11,6 +11,15 @@ function Dashboard() {
   const [devices, setDevices] = useState([]);
   const [telemetry, setTelemetry] = useState([]);
 
+  const totalDevices = devices.length;
+  const onlineDevices = devices.filter((d) => d.status === "ONLINE").length;
+  const updateAvailable = devices.filter(
+    (d) => d.ota_status === "UPDATE_AVAILABLE"
+  ).length;
+  const criticalDevices = devices.filter(
+    (d) => d.health_status === "CRITICAL"
+  ).length;
+
   const fetchData = async () => {
     try {
       const devicesRes = await axios.get(API_BASE_URL);
@@ -73,6 +82,34 @@ function Dashboard() {
           </Link>
         </div>
       </div>
+
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <p className="text-slate-400 text-sm">Total Devices</p>
+          <h2 className="text-3xl font-bold mt-2">{totalDevices}</h2>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <p className="text-slate-400 text-sm">Online Devices</p>
+          <h2 className="text-3xl font-bold mt-2 text-green-400">
+            {onlineDevices}
+          </h2>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <p className="text-slate-400 text-sm">Update Available</p>
+          <h2 className="text-3xl font-bold mt-2 text-yellow-400">
+            {updateAvailable}
+          </h2>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <p className="text-slate-400 text-sm">Critical Devices</p>
+          <h2 className="text-3xl font-bold mt-2 text-red-400">
+            {criticalDevices}
+          </h2>
+        </div>
+      </section>
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">Registered Devices</h2>
