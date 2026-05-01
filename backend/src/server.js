@@ -528,6 +528,38 @@ app.get("/api/ota-logs", (req, res) => {
   });
 });
 
+app.put("/api/devices/:deviceId/group", (req, res) => {
+  const deviceId = req.params.deviceId;
+  const deviceGroup = req.body.device_group;
+
+  if (!deviceGroup) {
+    return res.status(400).json({ message: "device_group is required" });
+  }
+
+  const sql = `
+    UPDATE devices
+    SET device_group = ?
+    WHERE device_id = ?
+  `;
+
+  db.query(sql, [deviceGroup, deviceId], (error, result) => {
+    if (error) {
+      console.error("Error updating device group:", error);
+      return res.status(500).json({
+        message: "Server error",
+        error: error.message,
+      });
+    }
+
+    res.json({
+      message: "Device group updated successfully",
+      device_id: deviceId,
+      device_group: deviceGroup,
+      affectedRows: result.affectedRows,
+    });
+  });
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });

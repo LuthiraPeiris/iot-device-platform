@@ -116,9 +116,10 @@ export default function DeviceDetails() {
           <p>Current Firmware: {device.firmware_version || "-"}</p>
           <p>Latest Firmware: {device.latest_firmware_version || "-"}</p>
           <p>OTA Status: {device.ota_status || "-"}</p>
+          <p>Device Group: {device.device_group || "default"}</p>
 
           <p>
-            <strong>Health Status:</strong>{" "}
+            Health Status:{" "}
             <span
               className={`px-2 py-1 rounded-lg text-xs font-semibold ${
                 device.health_status === "GOOD"
@@ -135,7 +136,7 @@ export default function DeviceDetails() {
           </p>
 
           <p>
-            <strong>Health Message:</strong>{" "}
+            Health Message:{" "}
             {device.health_message || "No health message"}
           </p>
 

@@ -120,6 +120,7 @@ function Dashboard() {
             <thead className="bg-slate-900">
               <tr>
                 <th className="p-3">Device ID</th>
+                <th className="p-3">Group</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Current Firmware</th>
                 <th className="p-3">OTA Status</th>
@@ -135,6 +136,30 @@ function Dashboard() {
               {devices.map((device) => (
                 <tr key={device.device_id} className="border-t border-slate-800">
                   <td className="p-3 font-medium">{device.device_id}</td>
+
+                  <td className="p-3">
+                    <input
+                      type="text"
+                      defaultValue={device.device_group || "default"}
+                      onBlur={async (e) => {
+                        try {
+                          await axios.put(
+                            `${DEVICES_API_URL}/${device.device_id}/group`,
+                            {
+                              device_group: e.target.value,
+                            }
+                          );
+
+                          alert("Device group updated");
+                          window.location.reload();
+                        } catch (error) {
+                          console.error(error);
+                          alert("Failed to update device group");
+                        }
+                      }}
+                      className="bg-slate-800 text-white px-2 py-1 rounded"
+                    />
+                  </td>
 
                   <td className="p-3">
                     <span
