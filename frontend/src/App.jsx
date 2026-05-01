@@ -121,6 +121,7 @@ function Dashboard() {
               <tr>
                 <th className="p-3">Device ID</th>
                 <th className="p-3">Group</th>
+                <th className="p-3">Location</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Current Firmware</th>
                 <th className="p-3">OTA Status</th>
@@ -133,130 +134,165 @@ function Dashboard() {
             </thead>
 
             <tbody>
-              {devices.map((device) => (
-                <tr key={device.device_id} className="border-t border-slate-800">
-                  <td className="p-3 font-medium">{device.device_id}</td>
+  {devices.map((device) => (
+    <tr key={device.device_id} className="border-t border-slate-800">
+      <td className="p-3 font-medium">{device.device_id}</td>
 
-                  <td className="p-3">
-                    <input
-                      type="text"
-                      defaultValue={device.device_group || "default"}
-                      onBlur={async (e) => {
-                        try {
-                          await axios.put(
-                            `${DEVICES_API_URL}/${device.device_id}/group`,
-                            {
-                              device_group: e.target.value,
-                            }
-                          );
+      {/* Device Group */}
+      <td className="p-3">
+        <input
+          type="text"
+          defaultValue={device.device_group || "default"}
+          onBlur={async (e) => {
+            try {
+              await axios.put(
+                `${DEVICES_API_URL}/${device.device_id}/group`,
+                {
+                  device_group: e.target.value,
+                }
+              );
 
-                          alert("Device group updated");
-                          window.location.reload();
-                        } catch (error) {
-                          console.error(error);
-                          alert("Failed to update device group");
-                        }
-                      }}
-                      className="bg-slate-800 text-white px-2 py-1 rounded"
-                    />
-                  </td>
+              alert("Device group updated");
+              window.location.reload();
+            } catch (error) {
+              console.error(error);
+              alert("Failed to update device group");
+            }
+          }}
+          className="bg-slate-800 text-white px-2 py-1 rounded"
+        />
+      </td>
 
-                  <td className="p-3">
-                    <span
-                      className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                        device.status === "ONLINE"
-                          ? "bg-green-600"
-                          : "bg-slate-700"
-                      }`}
-                    >
-                      {device.status || "OFFLINE"}
-                    </span>
-                  </td>
+      {/* Device Location */}
+      <td className="p-3">
+  <input
+    type="text"
+    defaultValue={device.device_location || "Unknown"}
+    onBlur={async (e) => {
+      try {
+        await axios.put(
+          `${DEVICES_API_URL}/${device.device_id}/location`,
+          {
+            device_location: e.target.value,
+          }
+        );
 
-                  <td className="p-3">{device.firmware_version || "-"}</td>
+        alert("Device location updated");
+        window.location.reload();
+      } catch (error) {
+        console.error(error);
+        alert("Failed to update device location");
+      }
+    }}
+    className="bg-slate-800 text-white px-2 py-1 rounded"
+  />
+</td>
 
-                  <td className="p-3">
-                    <span
-                      className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                        device.ota_status === "UP_TO_DATE"
-                          ? "bg-green-600"
-                          : device.ota_status === "UPDATE_AVAILABLE"
-                          ? "bg-yellow-600"
-                          : "bg-slate-700"
-                      }`}
-                    >
-                      {device.ota_status || "UNKNOWN"}
-                    </span>
-                  </td>
+      {/* Status */}
+      <td className="p-3">
+        <span
+          className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+            device.status === "ONLINE"
+              ? "bg-green-600"
+              : "bg-slate-700"
+          }`}
+        >
+          {device.status || "OFFLINE"}
+        </span>
+      </td>
 
-                  <td className="p-3">
-                    <span
-                      title={device.health_message || "No health message"}
-                      className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                        device.health_status === "GOOD"
-                          ? "bg-green-600"
-                          : device.health_status === "WARNING"
-                          ? "bg-yellow-600"
-                          : device.health_status === "CRITICAL"
-                          ? "bg-red-600"
-                          : "bg-slate-700"
-                      }`}
-                    >
-                      {device.health_status || "UNKNOWN"}
-                    </span>
-                  </td>
+      {/* Current Firmware */}
+      <td className="p-3">{device.firmware_version || "-"}</td>
 
-                  <td className="p-3">
-                    {device.latest_firmware_version || "-"}
-                  </td>
+      {/* OTA Status */}
+      <td className="p-3">
+        <span
+          className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+            device.ota_status === "UP_TO_DATE"
+              ? "bg-green-600"
+              : device.ota_status === "UPDATE_AVAILABLE"
+              ? "bg-yellow-600"
+              : "bg-slate-700"
+          }`}
+        >
+          {device.ota_status || "UNKNOWN"}
+        </span>
+      </td>
 
-                  <td className="p-3">
-                    {device.last_ota_check
-                      ? new Date(device.last_ota_check).toLocaleString()
-                      : "-"}
-                  </td>
+      {/* Health Status */}
+      <td className="p-3">
+        <span
+          title={device.health_message || "No health message"}
+          className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+            device.health_status === "GOOD"
+              ? "bg-green-600"
+              : device.health_status === "WARNING"
+              ? "bg-yellow-600"
+              : device.health_status === "CRITICAL"
+              ? "bg-red-600"
+              : "bg-slate-700"
+          }`}
+        >
+          {device.health_status || "UNKNOWN"}
+        </span>
+      </td>
 
-                  <td className="p-3">
-                    {device.last_seen
-                      ? new Date(device.last_seen).toLocaleString()
-                      : "N/A"}
-                  </td>
+      {/* Latest Firmware */}
+      <td className="p-3">
+        {device.latest_firmware_version || "-"}
+      </td>
 
-                  <td className="p-3">
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => sendCommand(device.device_id, "LED_ON")}
-                        className="px-3 py-1 rounded-lg bg-green-600 hover:bg-green-700"
-                      >
-                        LED ON
-                      </button>
+      {/* Last OTA Check */}
+      <td className="p-3">
+        {device.last_ota_check
+          ? new Date(device.last_ota_check).toLocaleString()
+          : "-"}
+      </td>
 
-                      <button
-                        onClick={() => sendCommand(device.device_id, "LED_OFF")}
-                        className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700"
-                      >
-                        LED OFF
-                      </button>
+      {/* Last Seen */}
+      <td className="p-3">
+        {device.last_seen
+          ? new Date(device.last_seen).toLocaleString()
+          : "N/A"}
+      </td>
 
-                      <Link
-                        to={`/devices/${device.device_id}`}
-                        className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700"
-                      >
-                        View Details
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+      {/* Actions */}
+      <td className="p-3">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => sendCommand(device.device_id, "LED_ON")}
+            className="px-3 py-1 rounded-lg bg-green-600 hover:bg-green-700"
+          >
+            LED ON
+          </button>
 
-              {devices.length === 0 && (
-                <tr>
-                  <td className="p-3 text-slate-400" colSpan="9">
-                    No registered devices found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
+          <button
+            onClick={() => sendCommand(device.device_id, "LED_OFF")}
+            className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700"
+          >
+            LED OFF
+          </button>
+
+          <Link
+            to={`/devices/${device.device_id}`}
+            className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700"
+          >
+            View Details
+          </Link>
+        </div>
+      </td>
+    </tr>
+  ))}
+
+  {devices.length === 0 && (
+    <tr>
+      <td className="p-3 text-slate-400" colSpan="10">
+        No registered devices found.
+      </td>
+    </tr>
+  )}
+</tbody>
+
           </table>
         </div>
       </section>

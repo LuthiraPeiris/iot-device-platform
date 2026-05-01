@@ -128,7 +128,8 @@ app.get("/api/devices", (req, res) => {
       END AS status,
       last_seen,
       created_at,
-      device_group
+      device_group,
+      device_location
     FROM devices
     ORDER BY created_at DESC
   `;
@@ -283,7 +284,8 @@ app.get("/api/devices/:deviceId", (req, res) => {
       END AS status,
       last_seen,
       created_at,
-      device_group
+      device_group,
+      device_location
     FROM devices
     WHERE device_id = ?
     LIMIT 1
@@ -555,6 +557,40 @@ app.put("/api/devices/:deviceId/group", (req, res) => {
       message: "Device group updated successfully",
       device_id: deviceId,
       device_group: deviceGroup,
+      affectedRows: result.affectedRows,
+    });
+  });
+});
+
+app.put("/api/devices/:deviceId/location", (req, res) => {
+  const deviceId = req.params.deviceId;
+  const deviceLocation = req.body.device_location;
+
+  if (!deviceLocation) {
+    return res.status(400).json({
+      message: "device_location is required",
+    });
+  }
+
+  const sql = `
+    UPDATE devices
+    SET device_location = ?
+    WHERE device_id = ?
+  `;
+
+  db.query(sql, [deviceLocation, deviceId], (error, result) => {
+    if (error) {
+      console.error("Error updating device location:", error);
+      return res.status(500).json({
+        message: "Server error",
+        error: error.message,
+      });
+    }
+
+    res.json({
+      message: "Device location updated successfully",
+      device_id: deviceId,
+      device_location: deviceLocation,
       affectedRows: result.affectedRows,
     });
   });
