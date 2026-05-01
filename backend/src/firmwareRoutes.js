@@ -208,4 +208,147 @@ router.post("/:id/set-latest", (req, res) => {
   });
 });
 
+// GET firmware update check for one device, using device group
+router.get("/check/:deviceId", (req, res) => {
+  const { deviceId } = req.params;
+  const currentVersion = req.query.version;
+
+  if (!currentVersion) {
+    return res.status(400).json({
+      message: "Current firmware version is required",
+    });
+  }
+
+  const deviceQuery = `
+    SELECT device_group
+    FROM devices
+    WHERE device_id = ?
+    LIMIT 1
+  `;
+
+  db.query(deviceQuery, [deviceId], (deviceErr, deviceRows) => {
+    if (deviceErr) {
+      console.error("Device group fetch error:", deviceErr);
+      return res.status(500).json({
+        message: "Database error",
+        error: deviceErr.message,
+      });
+    }
+
+    if (deviceRows.length === 0) {
+      return res.status(404).json({
+        message: "Device not found",
+        deviceId,
+      });
+    }
+
+    const deviceGroup = deviceRows[0].device_group || "default";
+
+    const firmwareQuery = `
+      SELECT *
+      FROM firmware_versions
+      WHERE is_latest = 1
+      AND target_group = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+
+    db.query(firmwareQuery, [deviceGroup], (firmwareErr, firmwareRows) => {
+      if (firmwareErr) {
+        console.error("Latest firmware fetch error:", firmwareErr);
+        return res.status(500).json({
+          message: "Database error",
+          error: firmwareErr.message,
+        });
+      }
+
+      if (firmwareRows.length === 0) {
+        return res.json({
+          updateAvailable: false,
+          deviceId,
+          currentVersion,
+          deviceGroup,
+          message: "No latest firmware found for this device group",
+        });
+      }
+
+      const latestFirmware = firmwareRows[0];
+      const latestVersion = latestFirmware.version;
+      const firmwareUrl = latestFirmware.file_url;
+
+      const otaStatus =
+        currentVersion !== latestVersion ? "UPDATE_AVAILABLE" : "UP_TO_DATE";
+
+      const updateDeviceQuery = `
+        UPDATE devices
+        SET 
+          firmware_version = ?,
+          latest_firmware_version = ?,
+          ota_status = ?,
+          last_ota_check = NOW()
+        WHERE device_id = ?
+      `;
+
+      db.query(
+        updateDeviceQuery,
+        [currentVersion, latestVersion, otaStatus, deviceId],
+        (updateErr) => {
+          if (updateErr) {
+            console.error("Firmware check update error:", updateErr);
+            return res.status(500).json({
+              message: "Database error",
+              error: updateErr.message,
+            });
+          }
+
+          const logStatus =
+            currentVersion !== latestVersion
+              ? "UPDATE_AVAILABLE"
+              : "UP_TO_DATE";
+
+          const logMessage =
+            currentVersion !== latestVersion
+              ? `Firmware update available from ${currentVersion} to ${latestVersion} for group ${deviceGroup}`
+              : `Device firmware is already up to date for group ${deviceGroup}`;
+
+          const insertLogQuery = `
+            INSERT INTO ota_logs 
+            (device_id, current_version, target_version, status, message)
+            VALUES (?, ?, ?, ?, ?)
+          `;
+
+          db.query(
+            insertLogQuery,
+            [deviceId, currentVersion, latestVersion, logStatus, logMessage],
+            (logErr) => {
+              if (logErr) {
+                console.error("OTA log insert error:", logErr);
+              }
+
+              if (currentVersion !== latestVersion) {
+                return res.json({
+                  updateAvailable: true,
+                  deviceId,
+                  currentVersion,
+                  latestVersion,
+                  firmwareUrl,
+                  deviceGroup,
+                });
+              }
+
+              res.json({
+                updateAvailable: false,
+                deviceId,
+                currentVersion,
+                latestVersion,
+                deviceGroup,
+              });
+            }
+          );
+        }
+      );
+    });
+  });
+});
+
 module.exports = router;
