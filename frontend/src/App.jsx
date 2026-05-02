@@ -338,7 +338,21 @@ function Dashboard() {
                     <td className="p-3">{item.device_id}</td>
                     <td className="p-3">{item.old_version}</td>
                     <td className="p-3">{item.new_version}</td>
-                    <td className="p-3">{item.status}</td>
+                    <td className="p-3">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          item.status === "UPDATE_AVAILABLE"
+                            ? "bg-yellow-500/20 text-yellow-400"
+                            : item.status === "UP_TO_DATE"
+                            ? "bg-green-500/20 text-green-400"
+                            : item.status === "FAILED"
+                            ? "bg-red-500/20 text-red-400"
+                            : "bg-slate-500/20 text-slate-400"
+                        }`}
+                      >
+                        {item.status}
+                      </span>
+                    </td>
                     <td className="p-3">
                       {new Date(item.created_at).toLocaleString()}
                     </td>

@@ -371,6 +371,7 @@ router.get("/history", (req, res) => {
       created_at
     FROM ota_history
     ORDER BY created_at DESC
+    LIMIT 10
   `;
 
   db.query(query, (err, rows) => {
