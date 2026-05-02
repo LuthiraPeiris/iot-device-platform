@@ -284,7 +284,7 @@ app.get("/api/devices/telemetry", (req, res) => {
   });
 });
 
-// Get telemetry for one device
+// Get latest telemetry for one device
 app.get("/api/devices/:deviceId/telemetry", (req, res) => {
   const { deviceId } = req.params;
 
@@ -305,7 +305,10 @@ app.get("/api/devices/:deviceId/telemetry", (req, res) => {
   db.query(query, [deviceId], (err, results) => {
     if (err) {
       console.error("Device telemetry fetch error:", err);
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({
+        message: "Failed to fetch device telemetry",
+        error: err.message,
+      });
     }
 
     res.json(results);
