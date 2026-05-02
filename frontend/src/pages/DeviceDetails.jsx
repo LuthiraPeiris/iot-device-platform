@@ -8,6 +8,7 @@ export default function DeviceDetails() {
 
   const [device, setDevice] = useState(null);
   const [telemetry, setTelemetry] = useState([]);
+  const [otaHistory, setOtaHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   async function fetchDeviceDetails() {
@@ -30,12 +31,24 @@ export default function DeviceDetails() {
 
       const telemetryData = await telemetryRes.json();
 
+      const otaHistoryRes = await fetch(
+        `${API_BASE_URL}/api/firmware/history/${deviceId}`
+      );
+
+      if (!otaHistoryRes.ok) {
+        throw new Error("Failed to fetch OTA history");
+      }
+
+      const otaHistoryData = await otaHistoryRes.json();
+
       setDevice(deviceData);
       setTelemetry(telemetryData);
+      setOtaHistory(otaHistoryData);
     } catch (err) {
       console.error("Failed to fetch device details:", err);
       setDevice(null);
       setTelemetry([]);
+      setOtaHistory([]);
     } finally {
       setLoading(false);
     }
@@ -135,10 +148,7 @@ export default function DeviceDetails() {
             </span>
           </p>
 
-          <p>
-            Health Message:{" "}
-            {device.health_message || "No health message"}
-          </p>
+          <p>Health Message: {device.health_message || "No health message"}</p>
 
           <p>
             Last OTA Check:{" "}
@@ -184,6 +194,71 @@ export default function DeviceDetails() {
           )}
         </div>
       </div>
+
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xl font-semibold">OTA History</h2>
+
+          <button
+            onClick={fetchDeviceDetails}
+            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-slate-800">
+          <table className="w-full text-left">
+            <thead className="bg-slate-900">
+              <tr>
+                <th className="p-3">Old Version</th>
+                <th className="p-3">New Version</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Time</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {otaHistory.map((item) => (
+                <tr key={item.id} className="border-t border-slate-800">
+                  <td className="p-3">{item.old_version || "-"}</td>
+                  <td className="p-3">{item.new_version || "-"}</td>
+                  <td className="p-3">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        item.status === "SUCCESS"
+                          ? "bg-green-500/20 text-green-400"
+                          : item.status === "UPDATE_AVAILABLE"
+                          ? "bg-yellow-500/20 text-yellow-400"
+                          : item.status === "FAILED"
+                          ? "bg-red-500/20 text-red-400"
+                          : item.status === "UP_TO_DATE"
+                          ? "bg-blue-500/20 text-blue-400"
+                          : "bg-slate-500/20 text-slate-400"
+                      }`}
+                    >
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    {item.created_at
+                      ? new Date(item.created_at).toLocaleString()
+                      : "-"}
+                  </td>
+                </tr>
+              ))}
+
+              {otaHistory.length === 0 && (
+                <tr>
+                  <td className="p-3 text-slate-400" colSpan="4">
+                    No OTA history found for this device.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section>
         <h2 className="text-xl font-semibold mb-3">Telemetry History</h2>

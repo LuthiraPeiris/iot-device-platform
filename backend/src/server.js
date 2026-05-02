@@ -84,6 +84,8 @@ app.post("/api/devices/heartbeat", (req, res) => {
     });
   }
 
+  const currentFirmware = firmware_version || "1.0.0";
+
   const sql = `
     INSERT INTO devices (device_id, status, firmware_version, last_seen)
     VALUES (?, 'online', ?, CURRENT_TIMESTAMP)
@@ -93,7 +95,7 @@ app.post("/api/devices/heartbeat", (req, res) => {
       last_seen = CURRENT_TIMESTAMP
   `;
 
-  db.query(sql, [device_id, firmware_version || "1.0.0"], (err) => {
+  db.query(sql, [device_id, currentFirmware], (err) => {
     if (err) {
       console.error("Heartbeat error:", err);
       return res.status(500).json({
@@ -102,9 +104,31 @@ app.post("/api/devices/heartbeat", (req, res) => {
       });
     }
 
-    res.json({
-      message: "Heartbeat updated successfully",
-    });
+    const updateOtaHistorySql = `
+      UPDATE ota_history
+      SET 
+        status = 'SUCCESS',
+        message = CONCAT('OTA update completed successfully. Device is now running firmware ', ?)
+      WHERE device_id = ?
+        AND new_version = ?
+        AND status = 'UPDATE_AVAILABLE'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+
+    db.query(
+      updateOtaHistorySql,
+      [currentFirmware, device_id, currentFirmware],
+      (historyErr) => {
+        if (historyErr) {
+          console.error("OTA history success update error:", historyErr);
+        }
+
+        res.json({
+          message: "Heartbeat updated successfully",
+        });
+      }
+    );
   });
 });
 
