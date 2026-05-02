@@ -302,44 +302,53 @@ function Dashboard() {
       </section>
 
       <section className="mt-10">
-  <h2 className="text-xl font-semibold mb-3">OTA Update History</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xl font-semibold">OTA Update History</h2>
 
-  <div className="overflow-x-auto rounded-xl border border-slate-800">
-    <table className="w-full text-left">
-      <thead className="bg-slate-900">
-        <tr>
-          <th className="p-3">Device ID</th>
-          <th className="p-3">Old Version</th>
-          <th className="p-3">New Version</th>
-          <th className="p-3">Status</th>
-          <th className="p-3">Time</th>
-        </tr>
-      </thead>
+          <button
+            onClick={fetchData}
+            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Refresh
+          </button>
+        </div>
 
-      <tbody>
-        {otaHistory.length === 0 ? (
-          <tr>
-            <td className="p-3 text-slate-400" colSpan="5">
-              No OTA history found
-            </td>
-          </tr>
-        ) : (
-          otaHistory.map((item) => (
-            <tr key={item.id} className="border-t border-slate-800">
-              <td className="p-3">{item.device_id}</td>
-              <td className="p-3">{item.old_version}</td>
-              <td className="p-3">{item.new_version}</td>
-              <td className="p-3">{item.status}</td>
-              <td className="p-3">
-                {new Date(item.created_at).toLocaleString()}
-              </td>
-            </tr>
-          ))
-        )}
-      </tbody>
-    </table>
-  </div>
-</section>
+        <div className="overflow-x-auto rounded-xl border border-slate-800">
+          <table className="w-full text-left">
+            <thead className="bg-slate-900">
+              <tr>
+                <th className="p-3">Device ID</th>
+                <th className="p-3">Old Version</th>
+                <th className="p-3">New Version</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Time</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {otaHistory.length === 0 ? (
+                <tr>
+                  <td className="p-3 text-slate-400" colSpan="5">
+                    No OTA history found
+                  </td>
+                </tr>
+              ) : (
+                otaHistory.map((item) => (
+                  <tr key={item.id} className="border-t border-slate-800">
+                    <td className="p-3">{item.device_id}</td>
+                    <td className="p-3">{item.old_version}</td>
+                    <td className="p-3">{item.new_version}</td>
+                    <td className="p-3">{item.status}</td>
+                    <td className="p-3">
+                      {new Date(item.created_at).toLocaleString()}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section>
         <h2 className="text-xl font-semibold mb-3">Latest Telemetry</h2>
