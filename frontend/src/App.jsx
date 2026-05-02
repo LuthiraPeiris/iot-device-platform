@@ -322,6 +322,7 @@ function Dashboard() {
                 <th className="p-3">New Version</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Time</th>
+                <th className="p-3">Message</th>
               </tr>
             </thead>
 
@@ -356,6 +357,7 @@ function Dashboard() {
                     <td className="p-3">
                       {new Date(item.created_at).toLocaleString()}
                     </td>
+                    <td className="p-3 text-slate-300">{item.message}</td>
                   </tr>
                 ))
               )}
