@@ -387,4 +387,36 @@ router.get("/history", (req, res) => {
   });
 });
 
+router.get("/history/:deviceId", (req, res) => {
+  const { deviceId } = req.params;
+
+  const query = `
+    SELECT 
+      id,
+      device_id,
+      old_version,
+      new_version,
+      firmware_url,
+      status,
+      message,
+      created_at
+    FROM ota_history
+    WHERE device_id = ?
+    ORDER BY created_at DESC
+    LIMIT 10
+  `;
+
+  db.query(query, [deviceId], (err, rows) => {
+    if (err) {
+      console.error("Error fetching device OTA history:", err);
+      return res.status(500).json({
+        message: "Failed to fetch device OTA history",
+        error: err.message,
+      });
+    }
+
+    res.json(rows);
+  });
+});
+
 module.exports = router;
