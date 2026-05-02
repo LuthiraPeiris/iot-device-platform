@@ -311,18 +311,25 @@ router.get("/check/:deviceId", (req, res) => {
               ? `Firmware update available from ${currentVersion} to ${latestVersion} for group ${deviceGroup}`
               : `Device firmware is already up to date for group ${deviceGroup}`;
 
-          const insertLogQuery = `
-            INSERT INTO ota_logs 
-            (device_id, current_version, target_version, status, message)
-            VALUES (?, ?, ?, ?, ?)
+          const insertHistoryQuery = `
+            INSERT INTO ota_history
+            (device_id, old_version, new_version, firmware_url, status, message)
+            VALUES (?, ?, ?, ?, ?, ?)
           `;
 
           db.query(
-            insertLogQuery,
-            [deviceId, currentVersion, latestVersion, logStatus, logMessage],
-            (logErr) => {
-              if (logErr) {
-                console.error("OTA log insert error:", logErr);
+            insertHistoryQuery,
+            [
+              deviceId,
+              currentVersion,
+              latestVersion,
+              firmwareUrl,
+              logStatus,
+              logMessage,
+            ],
+            (historyErr) => {
+              if (historyErr) {
+                console.error("OTA history insert error:", historyErr);
               }
 
               if (currentVersion !== latestVersion) {
@@ -336,7 +343,7 @@ router.get("/check/:deviceId", (req, res) => {
                 });
               }
 
-              res.json({
+              return res.json({
                 updateAvailable: false,
                 deviceId,
                 currentVersion,
@@ -348,6 +355,34 @@ router.get("/check/:deviceId", (req, res) => {
         }
       );
     });
+  });
+});
+
+router.get("/history", (req, res) => {
+  const query = `
+    SELECT 
+      id,
+      device_id,
+      old_version,
+      new_version,
+      firmware_url,
+      status,
+      message,
+      created_at
+    FROM ota_history
+    ORDER BY created_at DESC
+  `;
+
+  db.query(query, (err, rows) => {
+    if (err) {
+      console.error("Error fetching OTA history:", err);
+      return res.status(500).json({
+        message: "Failed to fetch OTA history",
+        error: err.message,
+      });
+    }
+
+    res.json(rows);
   });
 });
 
