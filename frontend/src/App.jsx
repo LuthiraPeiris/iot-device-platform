@@ -11,6 +11,7 @@ const DEVICES_API_URL = `${API_BASE_URL}/api/devices`;
 function Dashboard() {
   const [devices, setDevices] = useState([]);
   const [telemetry, setTelemetry] = useState([]);
+  const [otaHistory, setOtaHistory] = useState([]);
 
   const totalDevices = devices.length;
   const onlineDevices = devices.filter((d) => d.status === "ONLINE").length;
@@ -22,16 +23,19 @@ function Dashboard() {
   ).length;
 
   const fetchData = async () => {
-    try {
-      const devicesRes = await axios.get(DEVICES_API_URL);
-      const telemetryRes = await axios.get(`${DEVICES_API_URL}/telemetry`);
+  try {
+    const devicesRes = await axios.get(DEVICES_API_URL);
+    const telemetryRes = await axios.get(`${DEVICES_API_URL}/telemetry`);
+    const historyRes = await axios.get(`${API_BASE_URL}/api/firmware/history`);
 
-      setDevices(devicesRes.data);
-      setTelemetry(telemetryRes.data);
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    }
-  };
+    setDevices(devicesRes.data);
+    setTelemetry(telemetryRes.data);
+    setOtaHistory(historyRes.data);
+
+  } catch (error) {
+    console.error("Error fetching dashboard data:", error);
+  }
+};
 
   const sendCommand = async (deviceId, command) => {
     try {
@@ -296,6 +300,46 @@ function Dashboard() {
           </table>
         </div>
       </section>
+
+      <section className="mt-10">
+  <h2 className="text-xl font-semibold mb-3">OTA Update History</h2>
+
+  <div className="overflow-x-auto rounded-xl border border-slate-800">
+    <table className="w-full text-left">
+      <thead className="bg-slate-900">
+        <tr>
+          <th className="p-3">Device ID</th>
+          <th className="p-3">Old Version</th>
+          <th className="p-3">New Version</th>
+          <th className="p-3">Status</th>
+          <th className="p-3">Time</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {otaHistory.length === 0 ? (
+          <tr>
+            <td className="p-3 text-slate-400" colSpan="5">
+              No OTA history found
+            </td>
+          </tr>
+        ) : (
+          otaHistory.map((item) => (
+            <tr key={item.id} className="border-t border-slate-800">
+              <td className="p-3">{item.device_id}</td>
+              <td className="p-3">{item.old_version}</td>
+              <td className="p-3">{item.new_version}</td>
+              <td className="p-3">{item.status}</td>
+              <td className="p-3">
+                {new Date(item.created_at).toLocaleString()}
+              </td>
+            </tr>
+          ))
+        )}
+      </tbody>
+    </table>
+  </div>
+</section>
 
       <section>
         <h2 className="text-xl font-semibold mb-3">Latest Telemetry</h2>
