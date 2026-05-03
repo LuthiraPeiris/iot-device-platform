@@ -3,6 +3,7 @@ const cors = require("cors");
 const db = require("./db");
 const firmwareRoutes = require("./firmwareRoutes");
 require("dotenv").config();
+const path = require("path");
 
 const app = express();
 
@@ -36,7 +37,8 @@ app.put("/api/firmware/:id/latest", (req, res) => {
   });
 });
 
-app.use("/firmware", express.static("firmware"));
+//app.use("/firmware", express.static("firmware"));
+app.use("/firmware", express.static(path.join(__dirname, "../firmware")));
 
 const PORT = process.env.PORT || 5000;
 
