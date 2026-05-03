@@ -382,7 +382,7 @@ function Dashboard() {
             </thead>
 
             <tbody>
-              {telemetry.map((item) => (
+              {telemetry.slice(0, 10).map((item) => (
                 <tr key={item.id} className="border-t border-slate-800">
                   <td className="p-3">{item.device_id}</td>
                   <td className="p-3">{item.temperature} °C</td>

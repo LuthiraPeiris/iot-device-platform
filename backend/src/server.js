@@ -168,40 +168,40 @@ app.get("/api/devices", (req, res) => {
   });
 });
 
-// Save telemetry from ESP32
+// Save telemetry + update health + clean old telemetry
 app.post("/api/devices/telemetry", (req, res) => {
   const { device_id, temperature, battery, wifi_signal } = req.body;
-
-  let healthStatus = "GOOD";
-let healthMessage = "Device is working normally";
-
-if (battery < 20) {
-  healthStatus = "CRITICAL";
-  healthMessage = "Battery level is critically low";
-} else if (battery < 40) {
-  healthStatus = "WARNING";
-  healthMessage = "Battery level is low";
-}
-
-if (wifi_signal < -85) {
-  healthStatus = "CRITICAL";
-  healthMessage = "WiFi signal is very weak";
-} else if (wifi_signal < -70 && healthStatus !== "CRITICAL") {
-  healthStatus = "WARNING";
-  healthMessage = "WiFi signal is weak";
-}
 
   if (!device_id) {
     return res.status(400).json({ error: "device_id is required" });
   }
 
-  const query = `
+  let healthStatus = "GOOD";
+  let healthMessage = "Device is working normally";
+
+  if (battery < 20) {
+    healthStatus = "CRITICAL";
+    healthMessage = "Battery level is critically low";
+  } else if (battery < 40) {
+    healthStatus = "WARNING";
+    healthMessage = "Battery level is low";
+  }
+
+  if (wifi_signal < -85) {
+    healthStatus = "CRITICAL";
+    healthMessage = "WiFi signal is very weak";
+  } else if (wifi_signal < -70 && healthStatus !== "CRITICAL") {
+    healthStatus = "WARNING";
+    healthMessage = "WiFi signal is weak";
+  }
+
+  const insertTelemetryQuery = `
     INSERT INTO telemetry (device_id, temperature, battery, wifi_signal)
     VALUES (?, ?, ?, ?)
   `;
 
   db.query(
-    query,
+    insertTelemetryQuery,
     [device_id, temperature, battery, wifi_signal],
     (err) => {
       if (err) {
@@ -210,39 +210,65 @@ if (wifi_signal < -85) {
       }
 
       const updateHealthQuery = `
-  UPDATE devices
-  SET health_status = ?,
-      health_message = ?
-  WHERE device_id = ?
-`;
+        UPDATE devices
+        SET 
+          health_status = ?,
+          health_message = ?
+        WHERE device_id = ?
+      `;
 
-db.query(
-  updateHealthQuery,
-  [healthStatus, healthMessage, device_id],
-  (healthErr) => {
-    if (healthErr) {
-      console.error("Health update error:", healthErr);
-      return res.status(500).json({ error: healthErr.message });
-    }
+      db.query(
+        updateHealthQuery,
+        [healthStatus, healthMessage, device_id],
+        (healthErr) => {
+          if (healthErr) {
+            console.error("Health update error:", healthErr);
+            return res.status(500).json({ error: healthErr.message });
+          }
 
-    res.json({
-      message: "Telemetry saved and health updated successfully",
-      health_status: healthStatus,
-      health_message: healthMessage,
-    });
-  }
-);
+          const cleanupTelemetryQuery = `
+            DELETE FROM telemetry
+            WHERE id NOT IN (
+              SELECT id FROM (
+                SELECT id
+                FROM telemetry
+                WHERE device_id = ?
+                ORDER BY created_at DESC
+                LIMIT 30
+              ) AS latest_records
+            )
+            AND device_id = ?
+          `;
+
+          db.query(
+            cleanupTelemetryQuery,
+            [device_id, device_id],
+            (cleanupErr) => {
+              if (cleanupErr) {
+                console.error("Telemetry cleanup error:", cleanupErr);
+              }
+
+              res.json({
+                message:
+                  "Telemetry saved, health updated, and old telemetry cleaned successfully",
+                health_status: healthStatus,
+                health_message: healthMessage,
+              });
+            }
+          );
+        }
+      );
     }
   );
 });
 
-// Get latest telemetry for dashboard
+// Get latest telemetry for main dashboard
 app.get("/api/devices/telemetry", (req, res) => {
   const sql = `
     SELECT *
     FROM telemetry
     ORDER BY created_at DESC
-    LIMIT 50
+    LIMIT 20
   `;
 
   db.query(sql, (err, results) => {
@@ -258,7 +284,7 @@ app.get("/api/devices/telemetry", (req, res) => {
   });
 });
 
-// Get telemetry for one device
+// Get latest telemetry for one device
 app.get("/api/devices/:deviceId/telemetry", (req, res) => {
   const { deviceId } = req.params;
 
@@ -273,13 +299,16 @@ app.get("/api/devices/:deviceId/telemetry", (req, res) => {
     FROM telemetry
     WHERE device_id = ?
     ORDER BY created_at DESC
-    LIMIT 20
+    LIMIT 10
   `;
 
   db.query(query, [deviceId], (err, results) => {
     if (err) {
       console.error("Device telemetry fetch error:", err);
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({
+        message: "Failed to fetch device telemetry",
+        error: err.message,
+      });
     }
 
     res.json(results);
