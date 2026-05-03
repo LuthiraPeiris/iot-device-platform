@@ -47,7 +47,9 @@ router.post("/upload", upload.single("firmware"), (req, res) => {
   }
 
   const fileName = req.file.filename;
-  const fileUrl = `http://192.168.8.108:5000/firmware/${fileName}`;
+  //const fileUrl = `http://192.168.8.108:5000/firmware/${fileName}`;
+  const baseUrl = process.env.BASE_URL;
+  const fileUrl = `${baseUrl}/firmware/${fileName}`;
 
   db.query("UPDATE firmware_versions SET is_latest = 0", (error) => {
     if (error) {
